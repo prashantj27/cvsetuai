@@ -2481,19 +2481,7 @@ QUALITY RULES:
                 <span style={{ fontSize:9 }}>↑</span>
               </button>
 
-              {/* plain regenerate ⟳ */}
-              <button
-                onClick={() => regenerate(charBias)}
-                disabled={generating}
-                title="Regenerate this line"
-                style={{ ...btnBase }}
-                onMouseEnter={e => { if (!generating) { e.currentTarget.style.borderColor='rgba(176,125,42,0.6)'; e.currentTarget.style.color=T.gold; }}}
-                onMouseLeave={e => { e.currentTarget.style.borderColor='rgba(195,165,110,0.35)'; e.currentTarget.style.color=T.muted; }}
-              >
-                {generating
-                  ? <span style={{ display:'inline-block', animation:'spin 0.9s linear infinite', fontSize:11 }}>⟳</span>
-                  : <span style={{ fontSize:11 }}>⟳</span>}
-              </button>
+              {/* regenerate button removed */}
             </div>
           </div>
           {generating ? (
