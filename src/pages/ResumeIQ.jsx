@@ -372,7 +372,7 @@ function extractJSON(str) {
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-async function callClaude(userPrompt, maxTokens = 4000) {
+async function callClaude(userPrompt, maxTokens = 8192) {
   const res = await fetch(`${SUPABASE_URL}/functions/v1/resume-analyze`, {
     method: 'POST',
     headers: {
@@ -383,23 +383,32 @@ async function callClaude(userPrompt, maxTokens = 4000) {
   });
   if (!res.ok) {
     const errText = await res.text().catch(() => 'Unknown error');
-    throw new Error(`API error ${res.status}: ${errText.slice(0, 200)}`);
+    throw new Error(`API error ${res.status}: ${errText.slice(0, 300)}`);
   }
   const d = await res.json();
   if (d.error) throw new Error(d.error);
   const rawText = d.text || '';
   if (!rawText) throw new Error('Empty response from AI. Please try again.');
-  try { return JSON.parse(extractJSON(rawText)); }
+  console.log('[ResumeIQ] AI response length:', rawText.length, 'finishReason:', d.finishReason);
+  
+  // Strip markdown code fences if present
+  let cleaned = rawText.trim();
+  if (cleaned.startsWith('```json')) cleaned = cleaned.slice(7);
+  else if (cleaned.startsWith('```')) cleaned = cleaned.slice(3);
+  if (cleaned.endsWith('```')) cleaned = cleaned.slice(0, -3);
+  cleaned = cleaned.trim();
+  
+  try { return JSON.parse(extractJSON(cleaned)); }
   catch (parseErr) {
     try {
-      const partial = extractJSON(rawText);
+      const partial = extractJSON(cleaned);
       let depth = 0, arrDepth = 0;
       for (const ch of partial) {
         if (ch === '{') depth++; else if (ch === '}') depth--;
         else if (ch === '[') arrDepth++; else if (ch === ']') arrDepth--;
       }
       return JSON.parse(partial + ']'.repeat(Math.max(0,arrDepth)) + '}'.repeat(Math.max(0,depth)));
-    } catch { throw new Error(`JSON parse failed. Detail: ${parseErr.message}`); }
+    } catch { throw new Error(`JSON parse failed. Detail: ${parseErr.message}. Response preview: ${cleaned.slice(0, 200)}`); }
   }
 }
 
@@ -1155,10 +1164,10 @@ Return ONLY this JSON:
 RULES: All 8 items must have non-empty "action" fields. High priority = JD explicitly requires it and resume lacks it. Medium = JD mentions it and resume partially covers it. Low = nice-to-have alignment improvement.` : null;
 
   const [resultA, resultB, resultC, resultD] = await Promise.all([
-    callClaude(promptA, 5000),
-    callClaude(promptB, 16000),
-    promptC ? callClaude(promptC, 4000) : Promise.resolve(null),
-    promptD ? callClaude(promptD, 3000) : Promise.resolve(null),
+    callClaude(promptA, 8192),
+    callClaude(promptB, 16384),
+    promptC ? callClaude(promptC, 8192) : Promise.resolve(null),
+    promptD ? callClaude(promptD, 4096) : Promise.resolve(null),
   ]);
 
   // ── Repair pass ────────────────────────────────────────────────────────────
