@@ -1997,7 +1997,7 @@ function AnalyzingScreen({ progress }) {
 
   const [tipIdx, setTipIdx] = useState(() => Math.floor(Math.random() * ANALYZING_TIPS.length));
   useEffect(() => {
-    const iv = setInterval(() => setTipIdx(i => (i + 1) % tips.length), 7000);
+    const iv = setInterval(() => setTipIdx(i => (i + 1) % ANALYZING_TIPS.length), 7000);
     return () => clearInterval(iv);
   }, []);
 
