@@ -2325,13 +2325,15 @@ function LineItemCard({ item }) {
     return { n:'>10%', color: T.danger };
   };
 
-  /* Validation — NEVER truncate. Only fall back to original if improved is
-     shorter than original (a regression). Display everything else as-is. */
+  /* Validation — enforce 3%-10% window and no identical lines */
   function validateImproved(raw) {
     const t = (raw || '').trim();
     if (!t) return item.original;
-    if (effectiveLength(t) < origEffLen) return item.original; // regression — use original
-    return t; // display as-is, no truncation ever
+    if (t === item.original) return item.original; // must not be identical
+    const tLen = effectiveLength(t);
+    if (tLen < minChars) return item.original; // less than 3% increase
+    if (tLen > maxChars) return item.original; // more than 10% increase
+    return t;
   }
 
   const [improvedState, setImprovedState] = useState(() => validateImproved(item.improved));
