@@ -367,26 +367,27 @@ function extractJSON(str) {
 }
 
 /* ─────────────────────────────────────────────
-   CLAUDE API — ANALYSIS
+   AI API — ANALYSIS (via Lovable Cloud Edge Function)
 ───────────────────────────────────────────── */
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
 async function callClaude(userPrompt, maxTokens = 4000) {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/resume-analyze`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-5',
-      max_tokens: maxTokens,
-      system: 'You are an elite ATS algorithm and McKinsey/Google senior recruiter. Return ONLY valid JSON with no markdown, no commentary, no code fences — just the raw JSON object starting with { and ending with }.',
-      messages: [{ role: 'user', content: userPrompt }]
-    })
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+    },
+    body: JSON.stringify({ prompt: userPrompt, maxTokens })
   });
   if (!res.ok) {
     const errText = await res.text().catch(() => 'Unknown error');
     throw new Error(`API error ${res.status}: ${errText.slice(0, 200)}`);
   }
   const d = await res.json();
-  if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
-  const rawText = (d.content || []).map(b => b.text || '').join('');
+  if (d.error) throw new Error(d.error);
+  const rawText = d.text || '';
   if (!rawText) throw new Error('Empty response from AI. Please try again.');
   try { return JSON.parse(extractJSON(rawText)); }
   catch (parseErr) {
