@@ -1033,15 +1033,17 @@ Return ONLY this JSON:
 }`;
 
 
-/* ── repairLine: module-level — validates improved line length constraints ── */
+/* ── repairLine: module-level — validates improved line length constraints (3%-10%) ── */
 function repairLine(original, improved) {
   const origLen = effectiveLength(original);
-  const maxLen  = Math.ceil(origLen * 1.15);
+  const minLen  = Math.ceil(origLen * 1.03);
+  const maxLen  = Math.ceil(origLen * 1.10);
   const t = (improved || '').trim();
   if (!t) return original;
+  if (t === original) return original; // must not be identical
   const tLen = effectiveLength(t);
-  if (tLen < origLen) return original;
-  if (tLen <= maxLen) return t;
+  if (tLen < minLen) return original; // too short — less than 3% increase
+  if (tLen > maxLen) return original; // too long — more than 10% increase
   return t;
 }
 
