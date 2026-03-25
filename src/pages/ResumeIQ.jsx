@@ -992,20 +992,19 @@ REWRITING PHILOSOPHY — apply to every "improved":
 • Dense language — every word earns its place.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CHARACTER WINDOW — TIERED TARGETS:
+CHARACTER WINDOW — STRICT 3%–10% EXPANSION:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Every dash character (-, –, —, ‒, −) counts as exactly 1 character.
 For EACH line you rewrite, the original length is N characters.
-Target tiers in priority order (use the FIRST tier that allows a complete, high-quality sentence):
-  Tier 1 (best):    N to ceil(N × 1.03)
-  Tier 2:           ceil(N × 1.03)+1 to ceil(N × 1.05)
-  Tier 3:           ceil(N × 1.05)+1 to ceil(N × 1.07)
-  Tier 4 (max):     ceil(N × 1.07)+1 to ceil(N × 1.15)
+Your "improved" text MUST be between ceil(N × 1.03) and ceil(N × 1.10) characters.
+  MINIMUM: ceil(N × 1.03) — at least 3% longer than original. NEVER shorter.
+  MAXIMUM: ceil(N × 1.10) — at most 10% longer than original. NEVER exceed.
 
 RULES:
-• MINIMUM: improved length MUST be >= N. NEVER write fewer characters than the original.
-• NEVER truncate mid-sentence. A complete sentence at Tier 4 beats a fragment at Tier 1.
+• "improved" MUST NOT be identical to "original" — every line must be genuinely rewritten.
+• NEVER truncate mid-sentence. A complete sentence within the window is required.
 • "improved" must always be a grammatically complete thought.
+• If you cannot fit a better version within the window, still rewrite with different wording.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 COVERAGE — MANDATORY COMPLETE PASS:
