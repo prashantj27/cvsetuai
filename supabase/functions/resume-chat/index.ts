@@ -22,28 +22,29 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           ...messages
         ],
-        max_tokens: 800,
+        max_tokens: 1200,
       }),
     });
 
     if (!response.ok) {
+      const errBody = await response.text().catch(() => 'Unknown');
+      console.error(`[resume-chat] AI error: ${response.status}`, errBody.slice(0, 300));
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limited." }), {
+        return new Response(JSON.stringify({ error: "Rate limited. Please wait and try again." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Credits exhausted." }), {
+        return new Response(JSON.stringify({ error: "Credits exhausted. Please add funds." }), {
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const t = await response.text();
-      throw new Error(`AI error ${response.status}: ${t.slice(0, 200)}`);
+      throw new Error(`AI error ${response.status}`);
     }
 
     const data = await response.json();
@@ -53,7 +54,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("resume-chat error:", e);
+    console.error("[resume-chat] Error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
