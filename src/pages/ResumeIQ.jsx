@@ -1455,21 +1455,21 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
   return merged;
 }
 /* ─────────────────────────────────────────────
-   CLAUDE API — CHAT
+   AI API — CHAT (via Lovable Cloud Edge Function)
 ───────────────────────────────────────────── */
 async function sendChat(history, ctx) {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const systemPrompt = `You are ResumeIQ Coach, an expert career advisor. Resume context: ATS Score ${ctx.atsScore}/100. Issues: ${ctx.weaknesses?.join(', ')}. Strengths: ${ctx.strengths?.slice(0,2).join(', ')}. FORMAT your replies using: ## for main section headings, ### for sub-headings, - for bullet points, **text** for bold key terms, and numbered lists (1. 2. 3.) for action steps. Use colourful structured sections. Be specific, actionable, and concise. Max 4 sections.`;
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/resume-chat`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 800,
-      system: `You are ResumeIQ Coach, an expert career advisor. Resume context: ATS Score ${ctx.atsScore}/100. Issues: ${ctx.weaknesses?.join(', ')}. Strengths: ${ctx.strengths?.slice(0,2).join(', ')}. FORMAT your replies using: ## for main section headings, ### for sub-headings, - for bullet points, **text** for bold key terms, and numbered lists (1. 2. 3.) for action steps. Use colourful structured sections. Be specific, actionable, and concise. Max 4 sections.`,
-      messages: history
-    })
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+    },
+    body: JSON.stringify({ messages: history, systemPrompt })
   });
   const d = await res.json();
-  return d.content[0].text;
+  if (d.error) throw new Error(d.error);
+  return d.text;
 }
 
 /* ─────────────────────────────────────────────
