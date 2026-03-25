@@ -2528,19 +2528,12 @@ Return ONLY valid JSON: {"improved":"...","reason":"..."}
 Section: ${item.section || 'Resume'}
 Original (${origLen} chars): "${item.original}"
 
-CHARACTER WINDOW — TIERED (use the first tier that gives a COMPLETE sentence):
-N = ${origLen}. Prefer Tier 1, escalate if needed for a complete thought.
-  Tier 1: ${origLen}–${Math.ceil(origLen*1.03)} chars
-  Tier 2: ${Math.ceil(origLen*1.03)+1}–${Math.ceil(origLen*1.06)} chars
-  Tier 3: ${Math.ceil(origLen*1.06)+1}–${Math.ceil(origLen*1.09)} chars
-  Tier 4: ${Math.ceil(origLen*1.09)+1}–${Math.ceil(origLen*1.12)} chars
-  Tier 5 (max): ${Math.ceil(origLen*1.12)+1}–${Math.ceil(origLen*1.15)} chars
-
-RULES:
-• MIN: ${origLen} chars — NEVER fewer than original.
-• MAX: ${Math.ceil(origLen*1.15)} chars — NEVER exceed.
-• NEVER truncate mid-sentence or produce a fragment.
-• A complete sentence at Tier 3 beats a fragment at Tier 1.
+CHARACTER TARGET: Write a rewrite between ${Math.ceil(origLen*1.03)} and ${Math.ceil(origLen*1.10)} characters (3%–10% longer than original).
+N = ${origLen}.
+MINIMUM: ${Math.ceil(origLen*1.03)} chars — at least 3% longer.
+MAXIMUM: ${Math.ceil(origLen*1.10)} chars — at most 10% longer.
+The improved text MUST NOT be identical to the original.
+NEVER truncate mid-sentence or produce a fragment.
 
 QUALITY:
 • Strong past-tense action verb (Spearheaded, Drove, Delivered, Orchestrated…)
@@ -2549,7 +2542,8 @@ QUALITY:
         );
         const improved = (result.improved || '').trim();
         const reason   = (result.reason   || '').trim();
-        if (improved && effectiveLength(improved) >= origLen) {
+        const impLen = effectiveLength(improved);
+        if (improved && improved !== item.original && impLen >= Math.ceil(origLen * 1.03) && impLen <= Math.ceil(origLen * 1.10)) {
           updated[i] = { ...item, improved, reason };
         }
       } catch { /* keep original item on error */ }
