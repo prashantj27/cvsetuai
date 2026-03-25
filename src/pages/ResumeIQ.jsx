@@ -2313,19 +2313,16 @@ function AnnotTooltip({ annot, mousePos, isApplied, isLocked, onApply, onClose }
 ───────────────────────────────────────────── */
 function LineItemCard({ item }) {
   const origEffLen = effectiveLength(item.original);
-  const maxChars   = Math.ceil(origEffLen * 1.15); // absolute max — never truncate below this
+  const minChars   = Math.ceil(origEffLen * 1.03); // minimum 3% increase
+  const maxChars   = Math.ceil(origEffLen * 1.10); // maximum 10% increase
 
   // Tier thresholds for display colour coding
   const getTier = (len) => {
-    if (len < origEffLen)                          return null; // regression — never show
-    if (len <= Math.ceil(origEffLen * 1.03))       return { n:'1.03×', color: T.ok };
-    if (len <= Math.ceil(origEffLen * 1.05))       return { n:'1.05×', color: T.ok };
-    if (len <= Math.ceil(origEffLen * 1.07))       return { n:'1.07×', color: T.warn };
-    if (len <= Math.ceil(origEffLen * 1.09))       return { n:'1.09×', color: T.warn };
-    if (len <= Math.ceil(origEffLen * 1.11))       return { n:'1.11×', color: T.gold };
-    if (len <= Math.ceil(origEffLen * 1.13))       return { n:'1.13×', color: T.gold };
-    if (len <= Math.ceil(origEffLen * 1.15))       return { n:'1.15×', color: T.muted };
-    return { n:'>1.15×', color: T.danger };
+    if (len < minChars)                            return { n:'<3%', color: T.danger }; // too short
+    if (len <= Math.ceil(origEffLen * 1.05))       return { n:'3-5%', color: T.ok };
+    if (len <= Math.ceil(origEffLen * 1.07))       return { n:'5-7%', color: T.ok };
+    if (len <= maxChars)                           return { n:'7-10%', color: T.warn };
+    return { n:'>10%', color: T.danger };
   };
 
   /* Validation — NEVER truncate. Only fall back to original if improved is
