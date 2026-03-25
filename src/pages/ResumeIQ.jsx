@@ -2339,22 +2339,23 @@ function LineItemCard({ item }) {
   const [improvedState, setImprovedState] = useState(() => validateImproved(item.improved));
   const [reasonState,   setReasonState]   = useState(item.reason || '');
   const [generating,    setGenerating]    = useState(false);
-  // charBias: cumulative ±2% steps controlled by A↓ / A↑ buttons
-  // 0 = default (up to +15%), negative = shorter, positive = longer
+  // charBias: cumulative ±1% steps controlled by A↓ / A↑ buttons
+  // 0 = default (3%-10%), negative = tighter toward 3%, positive = toward 10%
   const [charBias, setCharBias] = useState(0);
 
-  // Clamp charBias so min target is 100% of orig and max is +15%
-  const biasMin = -7; // 7 steps of -2% = down to 0% expansion (floor = origLen)
-  const biasMax =  0; // 0 steps of +2% beyond default = +15% ceiling
+  // Clamp charBias: -3 to +3 (3% window slides within 3%-10%)
+  const biasMin = -3;
+  const biasMax =  3;
 
   // Compute target window based on charBias
   function getTargetWindow(bias) {
-    // bias in units of 2%. Default (0) → [origEffLen, ceil(origEffLen*1.15)]
-    // Each -1 step tightens upper bound by 2%, each +1 step would widen but we cap at 1.15
-    const upperMult = Math.max(1.01, 1.15 + bias * 0.02);
-    const lowerMult = Math.max(1.00, upperMult - 0.04); // window is ~4% wide
+    // Default (0) → [ceil(origEffLen*1.03), ceil(origEffLen*1.10)]
+    // Each step shifts the window center by ~1%
+    const centerMult = 1.065 + bias * 0.01; // center of 3%-10% = 6.5%
+    const lowerMult = Math.max(1.03, centerMult - 0.035);
+    const upperMult = Math.min(1.10, centerMult + 0.035);
     return {
-      min: origEffLen,
+      min: Math.ceil(origEffLen * lowerMult),
       max: Math.ceil(origEffLen * upperMult),
       targetMax: upperMult,
     };
@@ -2373,10 +2374,11 @@ Return ONLY valid JSON: {"improved":"...","reason":"..."}
 Section: ${item.section || 'Resume'}
 Original (${origEffLen} chars): "${item.original}"
 
-CHARACTER TARGET: Write a rewrite that is between ${min} and ${max} characters (target ≤${pct}% of original).
+CHARACTER TARGET: Write a rewrite that is between ${min} and ${max} characters (${Math.round((min/origEffLen-1)*100)}%–${Math.round((max/origEffLen-1)*100)}% longer than original).
 Every dash variant (-, –, —, ‒, −) = 1 character.
-MINIMUM: ${min} chars — NEVER fewer than the original.
-MAXIMUM: ${max} chars — NEVER exceed this.
+MINIMUM: ${min} chars — at least 3% longer than original.
+MAXIMUM: ${max} chars — at most 10% longer than original.
+The improved text MUST NOT be identical to the original.
 NEVER truncate mid-word, mid-sentence, or produce a fragment.
 "improved" must end at a complete grammatical thought.
 
@@ -2390,9 +2392,6 @@ QUALITY RULES:
       if (candidate && candidate !== item.original) {
         setImprovedState(candidate);
         setReasonState(newReason || 'Rewritten with stronger action verb, specificity, and measurable impact.');
-      } else if (candidate) {
-        setImprovedState(candidate);
-        if (newReason) setReasonState(newReason);
       }
     } catch {
       // silently ignore
