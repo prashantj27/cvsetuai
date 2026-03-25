@@ -992,20 +992,19 @@ REWRITING PHILOSOPHY — apply to every "improved":
 • Dense language — every word earns its place.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CHARACTER WINDOW — TIERED TARGETS:
+CHARACTER WINDOW — STRICT 3%–10% EXPANSION:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Every dash character (-, –, —, ‒, −) counts as exactly 1 character.
 For EACH line you rewrite, the original length is N characters.
-Target tiers in priority order (use the FIRST tier that allows a complete, high-quality sentence):
-  Tier 1 (best):    N to ceil(N × 1.03)
-  Tier 2:           ceil(N × 1.03)+1 to ceil(N × 1.05)
-  Tier 3:           ceil(N × 1.05)+1 to ceil(N × 1.07)
-  Tier 4 (max):     ceil(N × 1.07)+1 to ceil(N × 1.15)
+Your "improved" text MUST be between ceil(N × 1.03) and ceil(N × 1.10) characters.
+  MINIMUM: ceil(N × 1.03) — at least 3% longer than original. NEVER shorter.
+  MAXIMUM: ceil(N × 1.10) — at most 10% longer than original. NEVER exceed.
 
 RULES:
-• MINIMUM: improved length MUST be >= N. NEVER write fewer characters than the original.
-• NEVER truncate mid-sentence. A complete sentence at Tier 4 beats a fragment at Tier 1.
+• "improved" MUST NOT be identical to "original" — every line must be genuinely rewritten.
+• NEVER truncate mid-sentence. A complete sentence within the window is required.
 • "improved" must always be a grammatically complete thought.
+• If you cannot fit a better version within the window, still rewrite with different wording.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 COVERAGE — MANDATORY COMPLETE PASS:
@@ -1033,15 +1032,17 @@ Return ONLY this JSON:
 }`;
 
 
-/* ── repairLine: module-level — validates improved line length constraints ── */
+/* ── repairLine: module-level — validates improved line length constraints (3%-10%) ── */
 function repairLine(original, improved) {
   const origLen = effectiveLength(original);
-  const maxLen  = Math.ceil(origLen * 1.15);
+  const minLen  = Math.ceil(origLen * 1.03);
+  const maxLen  = Math.ceil(origLen * 1.10);
   const t = (improved || '').trim();
   if (!t) return original;
+  if (t === original) return original; // must not be identical
   const tLen = effectiveLength(t);
-  if (tLen < origLen) return original;
-  if (tLen <= maxLen) return t;
+  if (tLen < minLen) return original; // too short — less than 3% increase
+  if (tLen > maxLen) return original; // too long — more than 10% increase
   return t;
 }
 
@@ -2312,49 +2313,49 @@ function AnnotTooltip({ annot, mousePos, isApplied, isLocked, onApply, onClose }
 ───────────────────────────────────────────── */
 function LineItemCard({ item }) {
   const origEffLen = effectiveLength(item.original);
-  const maxChars   = Math.ceil(origEffLen * 1.15); // absolute max — never truncate below this
+  const minChars   = Math.ceil(origEffLen * 1.03); // minimum 3% increase
+  const maxChars   = Math.ceil(origEffLen * 1.10); // maximum 10% increase
 
   // Tier thresholds for display colour coding
   const getTier = (len) => {
-    if (len < origEffLen)                          return null; // regression — never show
-    if (len <= Math.ceil(origEffLen * 1.03))       return { n:'1.03×', color: T.ok };
-    if (len <= Math.ceil(origEffLen * 1.05))       return { n:'1.05×', color: T.ok };
-    if (len <= Math.ceil(origEffLen * 1.07))       return { n:'1.07×', color: T.warn };
-    if (len <= Math.ceil(origEffLen * 1.09))       return { n:'1.09×', color: T.warn };
-    if (len <= Math.ceil(origEffLen * 1.11))       return { n:'1.11×', color: T.gold };
-    if (len <= Math.ceil(origEffLen * 1.13))       return { n:'1.13×', color: T.gold };
-    if (len <= Math.ceil(origEffLen * 1.15))       return { n:'1.15×', color: T.muted };
-    return { n:'>1.15×', color: T.danger };
+    if (len < minChars)                            return { n:'<3%', color: T.danger }; // too short
+    if (len <= Math.ceil(origEffLen * 1.05))       return { n:'3-5%', color: T.ok };
+    if (len <= Math.ceil(origEffLen * 1.07))       return { n:'5-7%', color: T.ok };
+    if (len <= maxChars)                           return { n:'7-10%', color: T.warn };
+    return { n:'>10%', color: T.danger };
   };
 
-  /* Validation — NEVER truncate. Only fall back to original if improved is
-     shorter than original (a regression). Display everything else as-is. */
+  /* Validation — enforce 3%-10% window and no identical lines */
   function validateImproved(raw) {
     const t = (raw || '').trim();
     if (!t) return item.original;
-    if (effectiveLength(t) < origEffLen) return item.original; // regression — use original
-    return t; // display as-is, no truncation ever
+    if (t === item.original) return item.original; // must not be identical
+    const tLen = effectiveLength(t);
+    if (tLen < minChars) return item.original; // less than 3% increase
+    if (tLen > maxChars) return item.original; // more than 10% increase
+    return t;
   }
 
   const [improvedState, setImprovedState] = useState(() => validateImproved(item.improved));
   const [reasonState,   setReasonState]   = useState(item.reason || '');
   const [generating,    setGenerating]    = useState(false);
-  // charBias: cumulative ±2% steps controlled by A↓ / A↑ buttons
-  // 0 = default (up to +15%), negative = shorter, positive = longer
+  // charBias: cumulative ±1% steps controlled by A↓ / A↑ buttons
+  // 0 = default (3%-10%), negative = tighter toward 3%, positive = toward 10%
   const [charBias, setCharBias] = useState(0);
 
-  // Clamp charBias so min target is 100% of orig and max is +15%
-  const biasMin = -7; // 7 steps of -2% = down to 0% expansion (floor = origLen)
-  const biasMax =  0; // 0 steps of +2% beyond default = +15% ceiling
+  // Clamp charBias: -3 to +3 (3% window slides within 3%-10%)
+  const biasMin = -3;
+  const biasMax =  3;
 
   // Compute target window based on charBias
   function getTargetWindow(bias) {
-    // bias in units of 2%. Default (0) → [origEffLen, ceil(origEffLen*1.15)]
-    // Each -1 step tightens upper bound by 2%, each +1 step would widen but we cap at 1.15
-    const upperMult = Math.max(1.01, 1.15 + bias * 0.02);
-    const lowerMult = Math.max(1.00, upperMult - 0.04); // window is ~4% wide
+    // Default (0) → [ceil(origEffLen*1.03), ceil(origEffLen*1.10)]
+    // Each step shifts the window center by ~1%
+    const centerMult = 1.065 + bias * 0.01; // center of 3%-10% = 6.5%
+    const lowerMult = Math.max(1.03, centerMult - 0.035);
+    const upperMult = Math.min(1.10, centerMult + 0.035);
     return {
-      min: origEffLen,
+      min: Math.ceil(origEffLen * lowerMult),
       max: Math.ceil(origEffLen * upperMult),
       targetMax: upperMult,
     };
@@ -2373,10 +2374,11 @@ Return ONLY valid JSON: {"improved":"...","reason":"..."}
 Section: ${item.section || 'Resume'}
 Original (${origEffLen} chars): "${item.original}"
 
-CHARACTER TARGET: Write a rewrite that is between ${min} and ${max} characters (target ≤${pct}% of original).
+CHARACTER TARGET: Write a rewrite that is between ${min} and ${max} characters (${Math.round((min/origEffLen-1)*100)}%–${Math.round((max/origEffLen-1)*100)}% longer than original).
 Every dash variant (-, –, —, ‒, −) = 1 character.
-MINIMUM: ${min} chars — NEVER fewer than the original.
-MAXIMUM: ${max} chars — NEVER exceed this.
+MINIMUM: ${min} chars — at least 3% longer than original.
+MAXIMUM: ${max} chars — at most 10% longer than original.
+The improved text MUST NOT be identical to the original.
 NEVER truncate mid-word, mid-sentence, or produce a fragment.
 "improved" must end at a complete grammatical thought.
 
@@ -2390,9 +2392,6 @@ QUALITY RULES:
       if (candidate && candidate !== item.original) {
         setImprovedState(candidate);
         setReasonState(newReason || 'Rewritten with stronger action verb, specificity, and measurable impact.');
-      } else if (candidate) {
-        setImprovedState(candidate);
-        if (newReason) setReasonState(newReason);
       }
     } catch {
       // silently ignore
@@ -2482,19 +2481,7 @@ QUALITY RULES:
                 <span style={{ fontSize:9 }}>↑</span>
               </button>
 
-              {/* plain regenerate ⟳ */}
-              <button
-                onClick={() => regenerate(charBias)}
-                disabled={generating}
-                title="Regenerate this line"
-                style={{ ...btnBase }}
-                onMouseEnter={e => { if (!generating) { e.currentTarget.style.borderColor='rgba(176,125,42,0.6)'; e.currentTarget.style.color=T.gold; }}}
-                onMouseLeave={e => { e.currentTarget.style.borderColor='rgba(195,165,110,0.35)'; e.currentTarget.style.color=T.muted; }}
-              >
-                {generating
-                  ? <span style={{ display:'inline-block', animation:'spin 0.9s linear infinite', fontSize:11 }}>⟳</span>
-                  : <span style={{ fontSize:11 }}>⟳</span>}
-              </button>
+              {/* regenerate button removed */}
             </div>
           </div>
           {generating ? (
@@ -2541,19 +2528,12 @@ Return ONLY valid JSON: {"improved":"...","reason":"..."}
 Section: ${item.section || 'Resume'}
 Original (${origLen} chars): "${item.original}"
 
-CHARACTER WINDOW — TIERED (use the first tier that gives a COMPLETE sentence):
-N = ${origLen}. Prefer Tier 1, escalate if needed for a complete thought.
-  Tier 1: ${origLen}–${Math.ceil(origLen*1.03)} chars
-  Tier 2: ${Math.ceil(origLen*1.03)+1}–${Math.ceil(origLen*1.06)} chars
-  Tier 3: ${Math.ceil(origLen*1.06)+1}–${Math.ceil(origLen*1.09)} chars
-  Tier 4: ${Math.ceil(origLen*1.09)+1}–${Math.ceil(origLen*1.12)} chars
-  Tier 5 (max): ${Math.ceil(origLen*1.12)+1}–${Math.ceil(origLen*1.15)} chars
-
-RULES:
-• MIN: ${origLen} chars — NEVER fewer than original.
-• MAX: ${Math.ceil(origLen*1.15)} chars — NEVER exceed.
-• NEVER truncate mid-sentence or produce a fragment.
-• A complete sentence at Tier 3 beats a fragment at Tier 1.
+CHARACTER TARGET: Write a rewrite between ${Math.ceil(origLen*1.03)} and ${Math.ceil(origLen*1.10)} characters (3%–10% longer than original).
+N = ${origLen}.
+MINIMUM: ${Math.ceil(origLen*1.03)} chars — at least 3% longer.
+MAXIMUM: ${Math.ceil(origLen*1.10)} chars — at most 10% longer.
+The improved text MUST NOT be identical to the original.
+NEVER truncate mid-sentence or produce a fragment.
 
 QUALITY:
 • Strong past-tense action verb (Spearheaded, Drove, Delivered, Orchestrated…)
@@ -2562,7 +2542,8 @@ QUALITY:
         );
         const improved = (result.improved || '').trim();
         const reason   = (result.reason   || '').trim();
-        if (improved && effectiveLength(improved) >= origLen) {
+        const impLen = effectiveLength(improved);
+        if (improved && improved !== item.original && impLen >= Math.ceil(origLen * 1.03) && impLen <= Math.ceil(origLen * 1.10)) {
           updated[i] = { ...item, improved, reason };
         }
       } catch { /* keep original item on error */ }
