@@ -1164,10 +1164,10 @@ Return ONLY this JSON:
 RULES: All 8 items must have non-empty "action" fields. High priority = JD explicitly requires it and resume lacks it. Medium = JD mentions it and resume partially covers it. Low = nice-to-have alignment improvement.` : null;
 
   const [resultA, resultB, resultC, resultD] = await Promise.all([
-    callClaude(promptA, 5000),
-    callClaude(promptB, 16000),
-    promptC ? callClaude(promptC, 4000) : Promise.resolve(null),
-    promptD ? callClaude(promptD, 3000) : Promise.resolve(null),
+    callClaude(promptA, 8192),
+    callClaude(promptB, 16384),
+    promptC ? callClaude(promptC, 8192) : Promise.resolve(null),
+    promptD ? callClaude(promptD, 4096) : Promise.resolve(null),
   ]);
 
   // ── Repair pass ────────────────────────────────────────────────────────────
