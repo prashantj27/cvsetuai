@@ -5306,32 +5306,8 @@ Return this EXACT JSON structure (empty string/array if info not available — n
   ]
 }`;
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 4000,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }]
-    })
-  });
-
-  if (!res.ok) {
-    const errText = await res.text().catch(() => 'Unknown error');
-    throw new Error(`API error ${res.status}: ${errText.slice(0, 200)}`);
-  }
-  const d = await res.json();
-  if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
-  const rawText = (d.content || []).map(b => b.text || '').join('');
-  if (!rawText) throw new Error('Empty response from AI. Please try again.');
-
-  let cleaned = rawText.replace(/```(?:json)?\n?/g, '').replace(/\n?```/g, '').trim();
-  const start = cleaned.indexOf('{');
-  const end = cleaned.lastIndexOf('}');
-  if (start === -1 || end === -1) throw new Error('Could not parse resume JSON from AI response.');
-  cleaned = cleaned.slice(start, end + 1);
-  return JSON.parse(cleaned);
+  const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
+  return await callClaude(fullPrompt, 8192);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -7292,17 +7268,7 @@ async function generateDittoCopyResume(rawInfo, pageImageBase64, streamId) {
   // ═══════════════════════════════════════════════════════════
   // PASS 1 — Visual analysis: extract exact template spec
   // ═══════════════════════════════════════════════════════════
-  const analysisResp = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 3000,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: pageImageBase64 } },
-          { type: 'text', text: `You are a pixel-perfect HTML/CSS analyst. Examine this resume image and extract a COMPLETE, PRECISE visual specification. Be extremely specific — exact pixel values, exact hex colors, exact font sizes.
+  const analysisPrompt = `You are a pixel-perfect HTML/CSS analyst. Examine this resume image and extract a COMPLETE, PRECISE visual specification. Be extremely specific — exact pixel values, exact hex colors, exact font sizes.
 
 Return a JSON object with this EXACT structure (no markdown, no fences):
 {
@@ -7399,32 +7365,46 @@ Return a JSON object with this EXACT structure (no markdown, no fences):
     "sidebarTextColor": "#000000",
     "mainBgColor": "#ffffff",
     "dividerColor": "#cccccc",
-    "sidebarSections": ["CORE SKILLS","TOOLS & PLATFORMS","SOFT SKILLS","LANGUAGES","CERTIFICATIONS","AWARDS & HONOURS"],
-    "mainSections": ["WORK EXPERIENCE","EDUCATION","CONSULTING PROJECTS","LEADERSHIP & ACTIVITIES"]
+    "sidebarSections": [],
+    "mainSections": []
   },
   "skillsLayout": "bullet-columns",
-  "sections": ["EDUCATION PROFILE","CAREER SUMMARY","WORK EXPERIENCE","AI PRODUCT PORTFOLIO","INTERNSHIP","SKILLS AND COURSES","CERTIFICATES AND PROJECTS","POSITIONS OF RESPONSIBILITY","EXTRA CURRICULAR ACTIVITIES"]
+  "sections": []
 }
 
 IMPORTANT for sidebarLayout:
-- Set "used":true if the resume has a persistent LEFT or RIGHT column (sidebar) that runs the full height of the page, containing skills/contact/personal info — separate from the main content column.
-- A sidebar is a VERTICAL strip along the full left or right edge, NOT a two-column table row inside a single-column section.
-- If the resume is a classic single-column layout (even with internal two-col table rows), set "used":false.
-- Capture ALL section names that appear in the sidebar vs. main area accurately.
+- Set "used":true if the resume has a persistent LEFT or RIGHT column (sidebar) that runs the full height of the page.
+- If the resume is a classic single-column layout, set "used":false.
 
-Analyze the image carefully and fill in the ACTUAL values you see. Be precise about colors (use hex), sizes (use px numbers), and layout details.` }
-        ]
-      }]
+Analyze the image carefully and fill in the ACTUAL values you see. Be precise about colors (use hex), sizes (use px numbers), and layout details.`;
+
+  const analysisRes = await fetch(`${SUPABASE_URL}/functions/v1/resume-analyze`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+    },
+    body: JSON.stringify({
+      prompt: analysisPrompt,
+      maxTokens: 3000,
+      imageBase64: pageImageBase64,
+      systemPrompt: "You are a pixel-perfect HTML/CSS analyst. Return ONLY valid JSON. No markdown, no fences."
     })
   });
 
-  const analysisData = await analysisResp.json();
-  if (analysisData.error) throw new Error(analysisData.error.message || 'Template analysis failed');
-  const specText = analysisData.content?.find(b => b.type === 'text')?.text || '{}';
+  if (!analysisRes.ok) {
+    const errText = await analysisRes.text().catch(() => 'Unknown');
+    throw new Error(`Template analysis failed: ${errText.slice(0, 200)}`);
+  }
+  const analysisData = await analysisRes.json();
+  if (analysisData.error) throw new Error(analysisData.error);
+  const specText = analysisData.text || '{}';
   let templateSpec;
   try {
     const clean = specText.replace(/^```json?\n?/i, '').replace(/\n?```$/,'').trim();
-    templateSpec = JSON.parse(clean);
+    const start = clean.indexOf('{');
+    const end = clean.lastIndexOf('}');
+    templateSpec = JSON.parse(clean.slice(start, end + 1));
   } catch(e) {
     templateSpec = {};
   }
@@ -7432,154 +7412,58 @@ Analyze the image carefully and fill in the ACTUAL values you see. Be precise ab
   // ═══════════════════════════════════════════════════════════
   // PASS 2 — HTML generation using the extracted spec
   // ═══════════════════════════════════════════════════════════
-  const genResp = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 16000,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: pageImageBase64 } },
-            { type: 'text', text: `You are an expert HTML developer. Your job is to recreate this resume as a PIXEL-PERFECT HTML document, then fill it with the user's data below.
+  const genPrompt = `You are an expert HTML developer. Your job is to recreate this resume as a PIXEL-PERFECT HTML document, then fill it with the user's data below.
 
 TEMPLATE SPECIFICATION (extracted from the image above):
 ${JSON.stringify(templateSpec, null, 2)}
 
-════════════════════════════════════════════════════════
 STEP 0 — MANDATORY PRE-CODING DECISION (do this FIRST)
-════════════════════════════════════════════════════════
 Before writing any HTML, answer these questions based on the spec above:
   A) Is templateSpec.sidebarLayout.used === true? → YES = sidebar layout; NO = single-column layout
   B) If YES: what is sidebarLayout.sidebarWidthPct? What are sidebarSections vs. mainSections?
-  C) What is page.fontFamily and page.bgColor?
-  D) What is sectionHeader.bgColor and sectionHeader.textColor?
-  E) What is bullet.marker and bullet.fontSize?
-Write your answers as an HTML comment at the top of your output:
-  <!-- LAYOUT: [sidebar/single-column] | SIDEBAR: [width]% | FONT: [font] | HEADER: [bg]/[text] | BULLET: [marker][size] -->
-Then build the HTML accordingly.
+Write your answers as an HTML comment at the top of your output.
 
-════════════════════════════════════════════════════════
-CRITICAL RULES — READ EVERY SINGLE ONE BEFORE CODING
-════════════════════════════════════════════════════════
-
-STRUCTURE RULES:
-1. Replicate the EXACT visual structure — same section order, same layout type (full-width bars, two-column rows, sidebar, etc.)
-   CRITICAL: if sidebarLayout.used is TRUE, the ENTIRE page structure is a left-sidebar + right-main column. Build it that way from the start.
-2. Dark background section headers (navy/black bars with white text) → reproduce EXACTLY with the same color. Width is 100% of THEIR CONTAINING COLUMN (not necessarily 794px in sidebar mode).
-3. Tag bar below the name (colored background with role descriptors separated by |) — only reproduce if it actually EXISTS in the reference image. If the reference has no tag bar, do NOT invent one.
-4. Inline two-column table sections (label on left | content on right WITHIN a section body) → use a <table style="width:100%;border-collapse:collapse;table-layout:fixed"> with widths from the spec.
-5. Colored name header block → replicate exactly, placing it in the sidebar column if sidebarLayout.used is TRUE.
-
-TWO-COLUMN LABEL + BULLETS — APPLIES TO SINGLE-COLUMN LAYOUTS ONLY:
-(Skip this rule entirely if sidebarLayout.used === TRUE — sidebar resumes don't use inline two-column table rows)
-
-In single-column resumes with two-column table rows (label on left | content on right):
-• Use widths from templateSpec.twoColumnLayout.leftColWidth (e.g. "22%") for left, remaining for right
-• The label in the left <td> MUST sit at the TOP of its cell — use vertical-align:top
-• The RIGHT <td> content (bullets) MUST start on its OWN line — NEVER inline with the label
-• Correct HTML pattern:
-  <tr>
-    <td style="vertical-align:top;width:[leftColWidth];padding:4px 8px;font-weight:[leftColFontWeight];">Label</td>
-    <td style="vertical-align:top;width:[100-leftColWidth]%;padding:4px 8px;">
-      <div>• First bullet</div>
-      <div style="margin-top:3px;">• Second bullet</div>
-    </td>
-  </tr>
-• NEVER put the label and first bullet in the same <td> — always separate <td> elements
-
-SKILLS SECTION — LAYOUT-AWARE RULE (READ sidebarLayout.used FROM SPEC):
-
-IF templateSpec.sidebarLayout.used === TRUE (sidebar layout detected):
-• Skills live in the SIDEBAR column — list them ONE PER LINE, vertically stacked, matching the sidebar style
-• Each skill is a simple <div> or <p> — do NOT use a multi-column grid inside the sidebar
-• Use bullet marker from spec (usually "•") before each skill
-• Font-size, color, padding must exactly match sidebarTextColor and sidebar font-size from spec
-• Example sidebar skills:
-  <div style="padding:1px 0;font-size:8px;">• Roadmapping</div>
-  <div style="padding:1px 0;font-size:8px;">• A/B Testing</div>
-  <div style="padding:1px 0;font-size:8px;">• User Research</div>
-
-IF templateSpec.sidebarLayout.used === FALSE (single-column layout):
-• Skills MUST be displayed in a 3-column grid — exactly 3 skills per row
-• Use a <table style="width:100%;border-collapse:collapse;table-layout:fixed;"> with exactly 3 <td> per <tr>
-• Each <td> gets equal width: style="width:33.33%;padding:2px 4px;vertical-align:top;"
-• CRITICAL: Skills font-size MUST match body text font-size exactly
-• Example:
-  <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
-    <tr>
-      <td style="width:33.33%;padding:2px 4px;font-size:9px;">• Roadmapping</td>
-      <td style="width:33.33%;padding:2px 4px;font-size:9px;">• A/B Testing</td>
-      <td style="width:33.33%;padding:2px 4px;font-size:9px;">• User Research</td>
-    </tr>
-  </table>
-
-SIDEBAR LAYOUT — FULL PAGE STRUCTURE RULE (only when sidebarLayout.used === TRUE):
-• The entire page must be a flex row: <div style="display:flex;width:794px;min-height:1123px;...">
-• LEFT sidebar column: <div style="width:[sidebarWidthPct]%;background:[sidebarBgColor];padding:16px 10px;box-sizing:border-box;min-height:1123px;">
-• RIGHT main column: <div style="flex:1;background:[mainBgColor];padding:16px 12px;box-sizing:border-box;">
-• Name + contact info go at TOP of the sidebar (NOT in the main column header)
-• Sidebar sections: each sub-section has a bold heading label + vertical list of items
-• Main sections: each uses the full-width section header bar style from sectionHeader spec
-• NEVER put sidebar content inside the main column or vice-versa
-
-FULL-WIDTH ENFORCEMENT (CRITICAL):
-6. IF sidebarLayout.used === FALSE: outer wrapper = style="width:794px;box-sizing:border-box;font-family:Arial,sans-serif;font-size:9px;line-height:1.4;color:#000;background:#fff;"
-   IF sidebarLayout.used === TRUE:  outer wrapper = style="display:flex;flex-direction:row;width:794px;min-height:1123px;box-sizing:border-box;font-family:Arial,sans-serif;font-size:9px;line-height:1.4;color:#000;background:#fff;" — then two child divs: sidebar + main
-7. Every full-width section header bar MUST be: style="width:100%;background:[color];color:[textColor];padding:3px 8px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;display:block;box-sizing:border-box;" (applies to MAIN column section headers only in sidebar mode)
-8. Every inline two-column table MUST have: width="100%" style="width:100%;border-collapse:collapse;table-layout:fixed;" and its right <td> must have style="width:78%;word-wrap:break-word;"
-9. Every bullet line MUST use full available width — no fixed width limits, no max-width constraints
-10. Right column <td> in two-column sections: style="padding:3px 8px 3px 4px;vertical-align:top;word-wrap:break-word;width:78%;"
-10b. SIDEBAR NAME PLACEMENT: When sidebarLayout.used === TRUE, the candidate name, contact info, and personal details MUST be the FIRST items in the SIDEBAR column — NOT a separate header above the flex row. The sidebar column starts at the top of the page.
-
-TYPOGRAPHY RULES:
-11. Name font-size: at least 16px, font-weight:700, match transform and alignment
-12. Section header font-size: 9px minimum, match weight/color/transform from spec
-13. Body/bullet text font-size: 8.5px minimum — NEVER go below 8px
-14. Bold key terms, metrics, company names, role titles as they appear in the reference
-15. Dates: right-aligned, match style and color from spec
-16. FONT CONSISTENCY — CRITICAL: Every content cell (skills, bullets, certifications, extra-curricular, positions) MUST use the SAME font-size as the body text. Do NOT assign a different (larger or smaller) font-size to any content area. The font-size set on the outer wrapper div cascades down — only override it where explicitly needed (e.g. the name heading). Skills, bullets, and labels must NOT have their own larger font-size.
-
-STAR FRAMEWORK — MANDATORY FOR EVERY BULLET:
-16. EVERY single bullet point must follow: [Strong Past-Tense Action Verb] + [Context/Scope] + [Specific Action Taken] + [Quantified Result with number/metric]
-17. Example GOOD: "Spearheaded rollout of 3-tier loyalty program across 120+ outlets, driving 22% uplift in repeat purchases within Q1"
-18. Example BAD: "Worked on loyalty program" or "Helped with sales"
-19. If user gave no metric → use realistic qualitative impact ("significantly", "measurably") or infer a conservative % range
-20. Bold the metric/result part of each bullet: e.g. "...driving <strong>22% uplift in repeat purchases</strong>"
-
-OUTPUT RULES:
-21. Return ONLY raw HTML starting with <div — NO DOCTYPE, NO <html>, NO <head>, NO <body>, NO markdown fences
-22. ALL CSS must be INLINE (style="...") — absolutely no <style> tags, no class names, no IDs — this is mandatory for Word export compatibility
-23. Exactly 794px wide, content fits in ~1010px height — leave breathing room at bottom
-24. Use system fonts: Arial, Helvetica, Georgia, Times New Roman, Calibri — NO Google Fonts, NO @import
-25. Education section MUST be an HTML <table style="width:100%;border-collapse:collapse;"> with bold headers: Qualification/Degree | Institution | Year | Score/CGPA | Specialization/Honors
-26. Every color (background, text, border) MUST use a hex value (e.g. #1a1a2e) — NOT named colors, NOT rgba() — hex only so Word import parses them correctly
-27. Every <div> used as a section header bar MUST have explicit style="display:block;width:100%;box-sizing:border-box;" — never rely on inherited display
+CRITICAL RULES:
+1. Replicate the EXACT visual structure — same section order, same layout type
+2. Dark background section headers → reproduce EXACTLY with the same color
+3. ALL CSS must be INLINE (style="...") — no <style> tags, no class names
+4. Return ONLY raw HTML starting with <div — NO DOCTYPE, NO markdown fences
+5. Exactly 794px wide, use system fonts only
+6. Every color MUST use hex values
+7. STAR FRAMEWORK for every bullet: [Action Verb] + [Scope] + [Action] + [Quantified Result]
+8. Include ALL user-provided information — nothing omitted
+9. Education section MUST be an HTML table with headers
 
 CONTENT RULES (${streamLabel}):
-26. Organize user's data into the EXACT same section names as the reference template
-27. Include ALL user-provided information — nothing omitted
-28. Fill every section that exists in the reference with relevant content from user data
-29. For sections where user has no data, write one strong placeholder bullet using their general background
-30. Minimum 2 bullets per experience role, minimum 1 bullet per project/certificate
+- Organize user's data into the EXACT same section names as the reference template
+- Minimum 2 bullets per experience role, minimum 1 bullet per project
 
-════════════════════════════════════════════════════════
-USER'S INFORMATION TO FILL IN
-════════════════════════════════════════════════════════
+USER'S INFORMATION:
 ${rawInfo}
 
-Now generate the complete pixel-perfect HTML — replicate the reference EXACTLY in structure, colors, and typography, filled with the user's content above.` }
-          ]
-        }
-      ]
+Now generate the complete pixel-perfect HTML.`;
+
+  const genRes = await fetch(`${SUPABASE_URL}/functions/v1/resume-analyze`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+    },
+    body: JSON.stringify({
+      prompt: genPrompt,
+      maxTokens: 16000,
+      imageBase64: pageImageBase64,
+      systemPrompt: "You are an expert HTML developer. Return ONLY raw HTML starting with <div. No markdown, no code fences, no explanation."
     })
   });
 
-  const genData = await genResp.json();
-  if (genData.error) throw new Error(genData.error.message || 'HTML generation failed');
-  const html = genData.content?.find(b => b.type === 'text')?.text || '';
+  if (!genRes.ok) {
+    const errText = await genRes.text().catch(() => 'Unknown');
+    throw new Error(`HTML generation failed: ${errText.slice(0, 200)}`);
+  }
+  const genData = await genRes.json();
+  if (genData.error) throw new Error(genData.error);
+  const html = genData.text || '';
   return html
     .replace(/^```html?\n?/i, '')
     .replace(/^```\n?/, '')
