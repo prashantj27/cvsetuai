@@ -12,57 +12,56 @@ serve(async (req) => {
 
   try {
     const { prompt, maxTokens = 8192 } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const GOOGLE_GEMINI_API_KEY = Deno.env.get("GOOGLE_GEMINI_API_KEY");
+    if (!GOOGLE_GEMINI_API_KEY) throw new Error("GOOGLE_GEMINI_API_KEY is not configured");
 
     console.log(`[resume-analyze] Sending request, prompt length: ${prompt?.length}, maxTokens: ${maxTokens}`);
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          {
-            role: "system",
-            content: "You are an elite ATS algorithm and McKinsey/Google senior recruiter. You MUST return ONLY valid JSON. No markdown code fences, no backticks, no commentary, no explanation — output MUST start with { and end with }. This is critical."
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GOOGLE_GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [
+                {
+                  text: `You are an elite ATS algorithm and McKinsey/Google senior recruiter. You MUST return ONLY valid JSON. No markdown code fences, no backticks, no commentary, no explanation — output MUST start with { and end with }. This is critical.\n\n${prompt}`
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            maxOutputTokens: Math.min(maxTokens, 16384),
+            temperature: 0.7,
           },
-          { role: "user", content: prompt }
-        ],
-        max_tokens: Math.min(maxTokens, 16384),
-      }),
-    });
+        }),
+      }
+    );
 
     if (!response.ok) {
       const errBody = await response.text().catch(() => 'Unknown');
-      console.error(`[resume-analyze] AI gateway error: ${response.status}`, errBody.slice(0, 500));
-      
+      console.error(`[resume-analyze] Gemini API error: ${response.status}`, errBody.slice(0, 500));
+
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limited. Please try again in a moment." }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Credits exhausted. Please add funds in Settings > Workspace > Usage." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      throw new Error(`AI gateway error ${response.status}: ${errBody.slice(0, 200)}`);
+      throw new Error(`Gemini API error ${response.status}: ${errBody.slice(0, 200)}`);
     }
 
     const data = await response.json();
-    const text = data.choices?.[0]?.message?.content || "";
-    const finishReason = data.choices?.[0]?.finish_reason;
-    
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const finishReason = data.candidates?.[0]?.finishReason;
+
     console.log(`[resume-analyze] Response received. Length: ${text.length}, finishReason: ${finishReason}`);
 
     if (!text) {
-      console.error("[resume-analyze] Empty response from AI");
+      console.error("[resume-analyze] Empty response from Gemini");
       throw new Error("Empty response from AI. Please try again.");
     }
 
