@@ -5306,32 +5306,8 @@ Return this EXACT JSON structure (empty string/array if info not available — n
   ]
 }`;
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 4000,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }]
-    })
-  });
-
-  if (!res.ok) {
-    const errText = await res.text().catch(() => 'Unknown error');
-    throw new Error(`API error ${res.status}: ${errText.slice(0, 200)}`);
-  }
-  const d = await res.json();
-  if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
-  const rawText = (d.content || []).map(b => b.text || '').join('');
-  if (!rawText) throw new Error('Empty response from AI. Please try again.');
-
-  let cleaned = rawText.replace(/```(?:json)?\n?/g, '').replace(/\n?```/g, '').trim();
-  const start = cleaned.indexOf('{');
-  const end = cleaned.lastIndexOf('}');
-  if (start === -1 || end === -1) throw new Error('Could not parse resume JSON from AI response.');
-  cleaned = cleaned.slice(start, end + 1);
-  return JSON.parse(cleaned);
+  const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
+  return await callClaude(fullPrompt, 8192);
 }
 
 /* ─────────────────────────────────────────────────────────────
