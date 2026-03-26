@@ -7268,17 +7268,7 @@ async function generateDittoCopyResume(rawInfo, pageImageBase64, streamId) {
   // ═══════════════════════════════════════════════════════════
   // PASS 1 — Visual analysis: extract exact template spec
   // ═══════════════════════════════════════════════════════════
-  const analysisResp = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 3000,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: pageImageBase64 } },
-          { type: 'text', text: `You are a pixel-perfect HTML/CSS analyst. Examine this resume image and extract a COMPLETE, PRECISE visual specification. Be extremely specific — exact pixel values, exact hex colors, exact font sizes.
+  const analysisPrompt = `You are a pixel-perfect HTML/CSS analyst. Examine this resume image and extract a COMPLETE, PRECISE visual specification. Be extremely specific — exact pixel values, exact hex colors, exact font sizes.
 
 Return a JSON object with this EXACT structure (no markdown, no fences):
 {
@@ -7375,32 +7365,46 @@ Return a JSON object with this EXACT structure (no markdown, no fences):
     "sidebarTextColor": "#000000",
     "mainBgColor": "#ffffff",
     "dividerColor": "#cccccc",
-    "sidebarSections": ["CORE SKILLS","TOOLS & PLATFORMS","SOFT SKILLS","LANGUAGES","CERTIFICATIONS","AWARDS & HONOURS"],
-    "mainSections": ["WORK EXPERIENCE","EDUCATION","CONSULTING PROJECTS","LEADERSHIP & ACTIVITIES"]
+    "sidebarSections": [],
+    "mainSections": []
   },
   "skillsLayout": "bullet-columns",
-  "sections": ["EDUCATION PROFILE","CAREER SUMMARY","WORK EXPERIENCE","AI PRODUCT PORTFOLIO","INTERNSHIP","SKILLS AND COURSES","CERTIFICATES AND PROJECTS","POSITIONS OF RESPONSIBILITY","EXTRA CURRICULAR ACTIVITIES"]
+  "sections": []
 }
 
 IMPORTANT for sidebarLayout:
-- Set "used":true if the resume has a persistent LEFT or RIGHT column (sidebar) that runs the full height of the page, containing skills/contact/personal info — separate from the main content column.
-- A sidebar is a VERTICAL strip along the full left or right edge, NOT a two-column table row inside a single-column section.
-- If the resume is a classic single-column layout (even with internal two-col table rows), set "used":false.
-- Capture ALL section names that appear in the sidebar vs. main area accurately.
+- Set "used":true if the resume has a persistent LEFT or RIGHT column (sidebar) that runs the full height of the page.
+- If the resume is a classic single-column layout, set "used":false.
 
-Analyze the image carefully and fill in the ACTUAL values you see. Be precise about colors (use hex), sizes (use px numbers), and layout details.` }
-        ]
-      }]
+Analyze the image carefully and fill in the ACTUAL values you see. Be precise about colors (use hex), sizes (use px numbers), and layout details.`;
+
+  const analysisRes = await fetch(`${SUPABASE_URL}/functions/v1/resume-analyze`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+    },
+    body: JSON.stringify({
+      prompt: analysisPrompt,
+      maxTokens: 3000,
+      imageBase64: pageImageBase64,
+      systemPrompt: "You are a pixel-perfect HTML/CSS analyst. Return ONLY valid JSON. No markdown, no fences."
     })
   });
 
-  const analysisData = await analysisResp.json();
-  if (analysisData.error) throw new Error(analysisData.error.message || 'Template analysis failed');
-  const specText = analysisData.content?.find(b => b.type === 'text')?.text || '{}';
+  if (!analysisRes.ok) {
+    const errText = await analysisRes.text().catch(() => 'Unknown');
+    throw new Error(`Template analysis failed: ${errText.slice(0, 200)}`);
+  }
+  const analysisData = await analysisRes.json();
+  if (analysisData.error) throw new Error(analysisData.error);
+  const specText = analysisData.text || '{}';
   let templateSpec;
   try {
     const clean = specText.replace(/^```json?\n?/i, '').replace(/\n?```$/,'').trim();
-    templateSpec = JSON.parse(clean);
+    const start = clean.indexOf('{');
+    const end = clean.lastIndexOf('}');
+    templateSpec = JSON.parse(clean.slice(start, end + 1));
   } catch(e) {
     templateSpec = {};
   }
