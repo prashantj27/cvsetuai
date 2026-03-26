@@ -11,11 +11,28 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, maxTokens = 8192 } = await req.json();
+    const { prompt, maxTokens = 8192, imageBase64, systemPrompt } = await req.json();
     const GOOGLE_GEMINI_API_KEY = Deno.env.get("GOOGLE_GEMINI_API_KEY");
     if (!GOOGLE_GEMINI_API_KEY) throw new Error("GOOGLE_GEMINI_API_KEY is not configured");
 
-    console.log(`[resume-analyze] Sending request, prompt length: ${prompt?.length}, maxTokens: ${maxTokens}`);
+    console.log(`[resume-analyze] Sending request, prompt length: ${prompt?.length}, maxTokens: ${maxTokens}, hasImage: ${!!imageBase64}`);
+
+    // Build parts array — supports text-only and image+text
+    const parts: any[] = [];
+    if (imageBase64) {
+      parts.push({
+        inlineData: {
+          mimeType: "image/jpeg",
+          data: imageBase64
+        }
+      });
+    }
+    
+    const fullPrompt = systemPrompt 
+      ? `${systemPrompt}\n\n${prompt}`
+      : `You are an elite ATS algorithm and McKinsey/Google senior recruiter. You MUST return ONLY valid JSON. No markdown code fences, no backticks, no commentary, no explanation — output MUST start with { and end with }. This is critical.\n\n${prompt}`;
+    
+    parts.push({ text: fullPrompt });
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GOOGLE_GEMINI_API_KEY}`,
@@ -23,16 +40,7 @@ serve(async (req) => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [
-            {
-              role: "user",
-              parts: [
-                {
-                  text: `You are an elite ATS algorithm and McKinsey/Google senior recruiter. You MUST return ONLY valid JSON. No markdown code fences, no backticks, no commentary, no explanation — output MUST start with { and end with }. This is critical.\n\n${prompt}`
-                }
-              ]
-            }
-          ],
+          contents: [{ role: "user", parts }],
           generationConfig: {
             maxOutputTokens: Math.min(maxTokens, 16384),
             temperature: 0.7,
