@@ -42,7 +42,7 @@ serve(async (req) => {
         body: JSON.stringify({
           contents: [{ role: "user", parts }],
           generationConfig: {
-            maxOutputTokens: Math.min(maxTokens, 16384),
+            maxOutputTokens: Math.min(maxTokens, 65536),
             temperature: 0.7,
           },
         }),
