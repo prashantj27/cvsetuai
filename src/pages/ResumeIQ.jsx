@@ -5307,7 +5307,7 @@ Return this EXACT JSON structure (empty string/array if info not available — n
 }`;
 
   const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
-  return await callClaude(fullPrompt, 8192);
+  return await callClaude(fullPrompt, 32768);
 }
 
 /* ─────────────────────────────────────────────────────────────
