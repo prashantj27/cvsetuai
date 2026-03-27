@@ -1166,7 +1166,7 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
 
   const [resultA, resultB, resultC, resultD] = await Promise.all([
     callClaude(promptA, 8192),
-    callClaude(promptB, 16384),
+    callClaude(promptB, 32768),
     promptC ? callClaude(promptC, 8192) : Promise.resolve(null),
     promptD ? callClaude(promptD, 4096) : Promise.resolve(null),
   ]);
