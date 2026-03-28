@@ -1507,10 +1507,17 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
     }
   }
 
+  // Filter out false-positive "future-dated" ATS issues from AI response
+  const filteredAtsIssues = (resultA.atsIssues || []).filter(iss => {
+    const text = `${iss.issue || ''} ${iss.fix || ''}`.toLowerCase();
+    return !text.includes('future-dated') && !text.includes('future date') && !text.includes('future employment');
+  });
+
   const merged = {
     ...resultA,
     atsScore: calibratedAtsScore,
     recruiterScore: calibratedRecruiterScore,
+    atsIssues: filteredAtsIssues,
     roleScores: deduped,
     lineByLineAnalysis: repairedLines,
     hasJD: !!jdText,
