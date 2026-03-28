@@ -641,19 +641,32 @@ async function runAnalysis({ resumeText, jdText, industry, role, stream }) {
   }
 
   const promptA = `You are an elite ATS scoring engine and senior recruiter. Analyse ONLY the resume below. Return ONLY valid JSON, no markdown.
+
+CRITICAL CALIBRATION — READ BEFORE SCORING:
+An AVERAGE resume from a decent college/company should score 45–60 overall.
+A GOOD resume with solid experience but lacking quantification/keywords should score 55–70.
+A STRONG resume with quantified achievements, role-aligned keywords, clean structure should score 70–82.
+ONLY an EXCEPTIONAL resume — perfectly tailored, heavily quantified, zero filler, flawless structure — can score 83+.
+Scores above 85 are EXTREMELY RARE (top 2% of all resumes). Scores above 90 are virtually impossible.
+If you find yourself scoring above 75, re-examine each dimension critically and apply STRICT interpretation.
+
+ROLE ALIGNMENT IS MANDATORY: The resume MUST be evaluated against the Target Role "${role || 'General'}".
+If the resume lacks direct experience/keywords for this specific role, keywordMatch and experienceRelevance MUST be penalised heavily (cap at 50 if no direct role match evidence).
+
 ${resumeOnlyCtx}
 
 ════════════════════════════════════════════════════════════
  DIMENSION 1 — KEYWORD MATCH  (weight 0.28)
 ════════════════════════════════════════════════════════════
 Step 1 – Extract every distinct keyword/phrase from the resume (job titles, tools, methodologies, frameworks, metrics, sector terms, soft-skill phrases, certifications, acronyms).
-Step 2 – Build the "expected keyword set" for the TARGET role/industry context. Count a keyword as PRESENT only if it appears verbatim or as an accepted abbreviation (e.g. "OKR" == "OKRs", "P&L" == "P and L").
+Step 2 – Build the "expected keyword set" for the TARGET role "${role || 'General'}" and industry "${industry || 'General'}". The expected set should contain 40–50 role-specific power keywords. Count a keyword as PRESENT only if it appears verbatim or as an accepted abbreviation.
 Step 3 – Compute:
   rawKW  = (presentCount / expectedCount) × 100  capped at 100
-  densityBonus = min(10, floor(presentCount / 3))   — rewards rich keyword density
-  genericPenalty = count of generic filler phrases × 2  (filler = "team player", "hard worker", "detail-oriented", "fast learner", "passionate", "dynamic", "results-driven" without a metric)
-  keywordMatch = clamp(rawKW + densityBonus − genericPenalty, 0, 100)
-Bands: 90–100 = 30+ role-specific power keywords, near-zero filler; 70–89 = 18–29 keywords; 50–69 = 10–17; below 50 = <10.
+  densityBonus = min(5, floor(presentCount / 5))   — modest reward for keyword density
+  genericPenalty = count of generic filler phrases × 3  (filler = "team player", "hard worker", "detail-oriented", "fast learner", "passionate", "dynamic", "results-driven" without a metric, "go-getter", "self-starter", "proactive")
+  roleAlignmentPenalty = if resume has < 10 keywords matching the TARGET role's expected bank → subtract 15
+  keywordMatch = clamp(rawKW + densityBonus − genericPenalty − roleAlignmentPenalty, 0, 100)
+Bands: 85–100 = 35+ role-specific power keywords, near-zero filler, RARE; 65–84 = 20–34 keywords; 45–64 = 10–19; below 45 = <10.
 
 ════════════════════════════════════════════════════════════
  DIMENSION 2 — RESUME STRUCTURE  (weight 0.12)
@@ -860,14 +873,21 @@ SALES (bank of 50):
 quota, quota attainment, revenue target, ARR, MRR, ACV, TCV, deal size, pipeline, pipeline management, CRM, Salesforce, HubSpot, prospecting, cold outreach, SDR, BDR, AE, account executive, account management, key account, enterprise sales, SMB, SaaS sales, solution selling, consultative selling, challenger sale, SPIN selling, MEDDIC, BANT, closing, negotiation, objection handling, proposal, RFP, RFQ, demo, discovery call, qualification, forecast, win rate, conversion rate, customer acquisition, CAC, LTV, upsell, cross-sell, renewal, churn, NPS, territory management, commission, incentive, channel sales, partner sales, field sales, inside sales, sales enablement, sales ops
 
 ════════════════════════════════════════════════════════════
- IMPORTANT SCORING RULES
+ IMPORTANT SCORING RULES — STRICT CALIBRATION
 ════════════════════════════════════════════════════════════
 - Every score must be an integer 0–100
+- CALIBRATION CHECK: After computing all 7 dimensions, verify atsScore falls in the right band:
+    * Average resume from a good school/company → atsScore should be 45–60
+    * Good resume but missing quantification or role keywords → 55–70
+    * Strong, well-structured, keyword-rich, quantified → 70–82
+    * Exceptional (top 2%) → 83–90
+    * If atsScore > 80, re-examine and justify EACH dimension being that high
 - No two roleScores may have the same value — differentiate based on actual resume content
 - All 7 dimension scores must reflect GENUINE analysis of THIS resume, not defaults
 - atsScore must equal the weighted formula result above (±1 rounding only)
+- ROLE ALIGNMENT: If the resume doesn't demonstrate direct experience in "${role || 'the target role'}", experienceRelevance MUST be ≤ 55 and keywordMatch MUST be ≤ 60
 - Do NOT output placeholder or average values — compute from the resume text
-- If a Job Description is provided: "allMissingJdKeywords" MUST include EVERY single keyword/phrase/skill/tool found in the JD that does NOT appear in the resume — this is a comprehensive exhaustive list, not a sample. Extract all role titles, skills, tools, methodologies, certifications, action verbs with domain specificity, and domain-specific phrases from the JD that are absent from the resume.
+- If a Job Description is provided: "allMissingJdKeywords" MUST include EVERY single keyword/phrase/skill/tool found in the JD that does NOT appear in the resume — this is a comprehensive exhaustive list, not a sample.
 
 ════════════════════════════════════════════════════════════
  TOP RECOMMENDATIONS — STRICT RULES (most important output)
@@ -1289,20 +1309,21 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
       'Corporate Strategy Associate':['corporate strategy','strategy associate','strategy consultant','strategic analyst'],
     };
     const titleSigs = TITLE_MAP[roleKey] || [];
-    let expFit = 18;
+    let expFit = 12; // lower default — unrelated role
     for (const sig of titleSigs) {
-      if (resumeLower.includes(sig)) { expFit = 82; break; }
+      if (resumeLower.includes(sig)) { expFit = 78; break; }
     }
-    if (expFit < 82) {
+    if (expFit < 78) {
       const partial = titleSigs.filter(s => resumeLower.includes(s.split(' ')[0]));
-      if (partial.length >= 2) expFit = 58;
-      else if (partial.length === 1) expFit = 40;
+      if (partial.length >= 2) expFit = 48;
+      else if (partial.length === 1) expFit = 30;
     }
 
-    // D3 — Achievements Quality (0.20): quantified bullets
+    // D3 — Achievements Quality (0.20): quantified bullets — stricter counting
     const quantPattern = /\d+[\.,]?\d*\s*(%|x|×|cr|lakh|million|billion|k\b|mn|bn|hrs?|days?|weeks?|months?|years?|people|members?|team|users?|clients?|deals?|projects?)/gi;
     const quantHits = (resumeText.match(quantPattern) || []).length;
-    const achFit = Math.min(quantHits * 10, 100);
+    // Stricter: need more quant bullets to score high
+    const achFit = Math.min(quantHits * 7, 100);
 
     // D4 — Skills Match (0.12): tool/platform signals per role
     const SKILL_MAP = {
@@ -1318,7 +1339,6 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
       'Strategy':           ['excel','powerpoint','mece','scenario planning','financial modelling','okr'],
       'General Management': ['p&l','excel','powerpoint','crm','erp','board reporting','budgeting'],
       'Sales':              ['salesforce','hubspot','crm','excel','powerpoint','sales navigator'],
-      // Stream-specific skill signals
       'Investment Banking Analyst': ['excel','bloomberg','factset','dcf','lbo','pitchbook','financial model','powerpoint'],
       'Equity Research Analyst':    ['bloomberg','factset','excel','financial model','dcf','pitchbook','powerpoint'],
       'PE Analyst':                 ['excel','bloomberg','lbo','dcf','financial model','pitchbook','powerpoint'],
@@ -1372,20 +1392,27 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
     const skillHits2 = skillSigs.filter(s => resumeLower.includes(s)).length;
     const skillFit = Math.min((skillHits2 / Math.max(skillSigs.length, 1)) * 100, 100);
 
-    // D5 — Resume Structure (0.12): structure signals same as overall ATS
+    // D5 — Resume Structure (0.12): stricter structure scoring
     const hasContact = /email|phone|linkedin|@/.test(resumeLower);
     const hasSummary = /summary|objective|profile|about/.test(resumeLower);
     const hasBullets = (resumeText.match(/^[\s]*[-•▸►▪]/m) !== null);
-    const structFit = (hasContact ? 40 : 0) + (hasSummary ? 35 : 0) + (hasBullets ? 25 : 0);
+    const hasEducation = /education|degree|university|college|bachelor|master|mba/i.test(resumeLower);
+    const hasExperience = /experience|work history|employment/i.test(resumeLower);
+    const hasSkillsSection = /skills|technical skills|core competencies/i.test(resumeLower);
+    const structFit = (hasContact ? 20 : 0) + (hasSummary ? 15 : 0) + (hasBullets ? 15 : 0)
+                    + (hasEducation ? 15 : 0) + (hasExperience ? 20 : 0) + (hasSkillsSection ? 15 : 0);
 
     // D6 — Leadership Signals (0.04)
     const leaderPhrases = ['managed a team','led a team','managed team of','led team of','head of','supervised','mentored','coached','direct reports','p&l','board','c-suite'];
     const leaderHits2 = leaderPhrases.filter(p => resumeLower.includes(p)).length;
-    const leaderFit = Math.min(leaderHits2 * 22, 100);
+    const leaderFit = Math.min(leaderHits2 * 18, 100);
 
-    // D7 — ATS Formatting (0.06): detect formatting issues
-    const fmtDeductions = resumeText.includes('\t') ? 15 : 0;
-    const fmtFit = Math.max(100 - fmtDeductions, 60);
+    // D7 — ATS Formatting (0.06): detect formatting issues — stricter
+    let fmtDeductions = 0;
+    if (resumeText.includes('\t')) fmtDeductions += 20;
+    if (/[│┃┆┊╎║]/.test(resumeText)) fmtDeductions += 15; // table chars
+    if (resumeText.split('\n').some(l => l.length > 200)) fmtDeductions += 10; // very long lines suggest bad format
+    const fmtFit = Math.max(100 - fmtDeductions, 40);
 
     // FINAL: identical weights to overall ATS formula
     const rawScore = Math.round(
@@ -1398,23 +1425,28 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
       fmtFit     * 0.06
     );
 
-    // Hard caps: same rules as keyword-count gates
+    // Hard caps based on keyword evidence
     let capped = rawScore;
-    if (hits < 4)  capped = Math.min(capped, 32);
-    else if (hits < 9) capped = Math.min(capped, 58);
+    if (hits < 4)  capped = Math.min(capped, 28);
+    else if (hits < 7)  capped = Math.min(capped, 45);
+    else if (hits < 10) capped = Math.min(capped, 58);
+    else if (hits < 15) capped = Math.min(capped, 72);
 
     return Math.max(0, Math.min(100, capped));
   }
 
-  // Score ALL stream roles (no pre-slice), blend JS (70%) + AI (30%, capped)
+  // Score ALL stream roles (no pre-slice), blend JS (75%) + AI (25%, capped)
   const streamRoleScores = STREAM_ROLES.map(roleKey => {
     const jsScore = computeRoleScoreJS(roleKey);
     const aiRs    = (resultA.roleScores || []).find(r => r.role === roleKey);
     const hits    = countKeywordHits(roleKey);
     let aiScore   = aiRs ? aiRs.score : jsScore;
-    if (hits < 4)  aiScore = Math.min(aiScore, 32);
-    else if (hits < 9) aiScore = Math.min(aiScore, 58);
-    const blended = Math.round(jsScore * 0.70 + aiScore * 0.30);
+    // Apply strict keyword-based caps to AI scores
+    if (hits < 4)  aiScore = Math.min(aiScore, 28);
+    else if (hits < 7) aiScore = Math.min(aiScore, 45);
+    else if (hits < 10) aiScore = Math.min(aiScore, 58);
+    else if (hits < 15) aiScore = Math.min(aiScore, 72);
+    const blended = Math.round(jsScore * 0.75 + aiScore * 0.25);
     return { role: roleKey, score: Math.max(0, Math.min(100, blended)) };
   });
 
@@ -1430,6 +1462,32 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
       return { ...rs, score: s };
     })
     .slice(0, 10); // ← top 10 by actual score, after scoring every role
+
+  // ── JS-side calibration of AI's overall ATS score ─────────────────────────
+  // The AI tends to inflate scores. We compute a JS-side ATS estimate and
+  // blend it with the AI score to ground it in reality.
+  const selectedRoleKey = role || 'Business Analyst';
+  const jsOverallHits = countKeywordHits(selectedRoleKey);
+  const jsOverallKw = Math.min((jsOverallHits / Math.max((ROLE_KEYWORD_BANKS[selectedRoleKey] || []).length, 1)) * 100, 100);
+  const quantPatternGlobal = /\d+[\.,]?\d*\s*(%|x|×|cr|lakh|million|billion|k\b|mn|bn|hrs?|days?|weeks?|months?|years?|people|members?|team|users?|clients?|deals?|projects?)/gi;
+  const globalQuantHits = (resumeText.match(quantPatternGlobal) || []).length;
+  const jsOverallAch = Math.min(globalQuantHits * 7, 100);
+  const jsOverallEst = Math.round(jsOverallKw * 0.35 + jsOverallAch * 0.25 + 50 * 0.40); // rough estimate
+  
+  let calibratedAtsScore = resultA.atsScore || 50;
+  // If AI score is much higher than JS estimate, pull it down
+  if (calibratedAtsScore > jsOverallEst + 20) {
+    calibratedAtsScore = Math.round(jsOverallEst * 0.45 + calibratedAtsScore * 0.55);
+  }
+  // Hard cap: if resume has < 12 role-specific keyword hits, cap at 65
+  if (jsOverallHits < 12) calibratedAtsScore = Math.min(calibratedAtsScore, 65);
+  if (jsOverallHits < 7)  calibratedAtsScore = Math.min(calibratedAtsScore, 52);
+  if (jsOverallHits < 4)  calibratedAtsScore = Math.min(calibratedAtsScore, 38);
+  // Cap recruiter score similarly
+  let calibratedRecruiterScore = resultA.recruiterScore || 50;
+  if (calibratedRecruiterScore > calibratedAtsScore + 15) {
+    calibratedRecruiterScore = calibratedAtsScore + Math.round((calibratedRecruiterScore - calibratedAtsScore) * 0.4);
+  }
 
   // Merge resultC (match data) + resultD (action plan) into a single jdMatch object
   let jdMatch = null;
@@ -1449,6 +1507,8 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
 
   const merged = {
     ...resultA,
+    atsScore: calibratedAtsScore,
+    recruiterScore: calibratedRecruiterScore,
     roleScores: deduped,
     lineByLineAnalysis: repairedLines,
     hasJD: !!jdText,
