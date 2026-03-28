@@ -888,6 +888,8 @@ quota, quota attainment, revenue target, ARR, MRR, ACV, TCV, deal size, pipeline
 - ROLE ALIGNMENT: If the resume doesn't demonstrate direct experience in "${role || 'the target role'}", experienceRelevance MUST be ≤ 55 and keywordMatch MUST be ≤ 60
 - Do NOT output placeholder or average values — compute from the resume text
 - If a Job Description is provided: "allMissingJdKeywords" MUST include EVERY single keyword/phrase/skill/tool found in the JD that does NOT appear in the resume — this is a comprehensive exhaustive list, not a sample.
+- DATE HANDLING: Today's date is ${new Date().toLocaleDateString('en-US', {month:'long',year:'numeric'})}. ALL dates in the resume (2024, 2025, 2026, etc.) are VALID and NOT future-dated. NEVER flag any date as "future-dated employment" or "future date error". Do NOT penalise or flag dates like "2025", "2026", "Jan'26", "Sept'25 - Jan'26" etc. as issues. Treat all dates in the resume as legitimate and current.
+- NEVER include "future-dated" or "future date" in atsIssues — these are false positives caused by model training cutoffs.
 
 ════════════════════════════════════════════════════════════
  TOP RECOMMENDATIONS — STRICT RULES (most important output)
