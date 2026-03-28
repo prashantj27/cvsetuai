@@ -873,14 +873,21 @@ SALES (bank of 50):
 quota, quota attainment, revenue target, ARR, MRR, ACV, TCV, deal size, pipeline, pipeline management, CRM, Salesforce, HubSpot, prospecting, cold outreach, SDR, BDR, AE, account executive, account management, key account, enterprise sales, SMB, SaaS sales, solution selling, consultative selling, challenger sale, SPIN selling, MEDDIC, BANT, closing, negotiation, objection handling, proposal, RFP, RFQ, demo, discovery call, qualification, forecast, win rate, conversion rate, customer acquisition, CAC, LTV, upsell, cross-sell, renewal, churn, NPS, territory management, commission, incentive, channel sales, partner sales, field sales, inside sales, sales enablement, sales ops
 
 ════════════════════════════════════════════════════════════
- IMPORTANT SCORING RULES
+ IMPORTANT SCORING RULES — STRICT CALIBRATION
 ════════════════════════════════════════════════════════════
 - Every score must be an integer 0–100
+- CALIBRATION CHECK: After computing all 7 dimensions, verify atsScore falls in the right band:
+    * Average resume from a good school/company → atsScore should be 45–60
+    * Good resume but missing quantification or role keywords → 55–70
+    * Strong, well-structured, keyword-rich, quantified → 70–82
+    * Exceptional (top 2%) → 83–90
+    * If atsScore > 80, re-examine and justify EACH dimension being that high
 - No two roleScores may have the same value — differentiate based on actual resume content
 - All 7 dimension scores must reflect GENUINE analysis of THIS resume, not defaults
 - atsScore must equal the weighted formula result above (±1 rounding only)
+- ROLE ALIGNMENT: If the resume doesn't demonstrate direct experience in "${role || 'the target role'}", experienceRelevance MUST be ≤ 55 and keywordMatch MUST be ≤ 60
 - Do NOT output placeholder or average values — compute from the resume text
-- If a Job Description is provided: "allMissingJdKeywords" MUST include EVERY single keyword/phrase/skill/tool found in the JD that does NOT appear in the resume — this is a comprehensive exhaustive list, not a sample. Extract all role titles, skills, tools, methodologies, certifications, action verbs with domain specificity, and domain-specific phrases from the JD that are absent from the resume.
+- If a Job Description is provided: "allMissingJdKeywords" MUST include EVERY single keyword/phrase/skill/tool found in the JD that does NOT appear in the resume — this is a comprehensive exhaustive list, not a sample.
 
 ════════════════════════════════════════════════════════════
  TOP RECOMMENDATIONS — STRICT RULES (most important output)
