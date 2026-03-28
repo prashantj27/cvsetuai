@@ -1435,15 +1435,18 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
     return Math.max(0, Math.min(100, capped));
   }
 
-  // Score ALL stream roles (no pre-slice), blend JS (70%) + AI (30%, capped)
+  // Score ALL stream roles (no pre-slice), blend JS (75%) + AI (25%, capped)
   const streamRoleScores = STREAM_ROLES.map(roleKey => {
     const jsScore = computeRoleScoreJS(roleKey);
     const aiRs    = (resultA.roleScores || []).find(r => r.role === roleKey);
     const hits    = countKeywordHits(roleKey);
     let aiScore   = aiRs ? aiRs.score : jsScore;
-    if (hits < 4)  aiScore = Math.min(aiScore, 32);
-    else if (hits < 9) aiScore = Math.min(aiScore, 58);
-    const blended = Math.round(jsScore * 0.70 + aiScore * 0.30);
+    // Apply strict keyword-based caps to AI scores
+    if (hits < 4)  aiScore = Math.min(aiScore, 28);
+    else if (hits < 7) aiScore = Math.min(aiScore, 45);
+    else if (hits < 10) aiScore = Math.min(aiScore, 58);
+    else if (hits < 15) aiScore = Math.min(aiScore, 72);
+    const blended = Math.round(jsScore * 0.75 + aiScore * 0.25);
     return { role: roleKey, score: Math.max(0, Math.min(100, blended)) };
   });
 
@@ -1459,6 +1462,32 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
       return { ...rs, score: s };
     })
     .slice(0, 10); // ← top 10 by actual score, after scoring every role
+
+  // ── JS-side calibration of AI's overall ATS score ─────────────────────────
+  // The AI tends to inflate scores. We compute a JS-side ATS estimate and
+  // blend it with the AI score to ground it in reality.
+  const selectedRoleKey = role || 'Business Analyst';
+  const jsOverallHits = countKeywordHits(selectedRoleKey);
+  const jsOverallKw = Math.min((jsOverallHits / Math.max((ROLE_KEYWORD_BANKS[selectedRoleKey] || []).length, 1)) * 100, 100);
+  const quantPatternGlobal = /\d+[\.,]?\d*\s*(%|x|×|cr|lakh|million|billion|k\b|mn|bn|hrs?|days?|weeks?|months?|years?|people|members?|team|users?|clients?|deals?|projects?)/gi;
+  const globalQuantHits = (resumeText.match(quantPatternGlobal) || []).length;
+  const jsOverallAch = Math.min(globalQuantHits * 7, 100);
+  const jsOverallEst = Math.round(jsOverallKw * 0.35 + jsOverallAch * 0.25 + 50 * 0.40); // rough estimate
+  
+  let calibratedAtsScore = resultA.atsScore || 50;
+  // If AI score is much higher than JS estimate, pull it down
+  if (calibratedAtsScore > jsOverallEst + 20) {
+    calibratedAtsScore = Math.round(jsOverallEst * 0.45 + calibratedAtsScore * 0.55);
+  }
+  // Hard cap: if resume has < 12 role-specific keyword hits, cap at 65
+  if (jsOverallHits < 12) calibratedAtsScore = Math.min(calibratedAtsScore, 65);
+  if (jsOverallHits < 7)  calibratedAtsScore = Math.min(calibratedAtsScore, 52);
+  if (jsOverallHits < 4)  calibratedAtsScore = Math.min(calibratedAtsScore, 38);
+  // Cap recruiter score similarly
+  let calibratedRecruiterScore = resultA.recruiterScore || 50;
+  if (calibratedRecruiterScore > calibratedAtsScore + 15) {
+    calibratedRecruiterScore = calibratedAtsScore + Math.round((calibratedRecruiterScore - calibratedAtsScore) * 0.4);
+  }
 
   // Merge resultC (match data) + resultD (action plan) into a single jdMatch object
   let jdMatch = null;
@@ -1478,6 +1507,8 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
 
   const merged = {
     ...resultA,
+    atsScore: calibratedAtsScore,
+    recruiterScore: calibratedRecruiterScore,
     roleScores: deduped,
     lineByLineAnalysis: repairedLines,
     hasJD: !!jdText,
