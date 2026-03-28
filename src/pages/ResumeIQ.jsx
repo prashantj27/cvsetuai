@@ -641,19 +641,32 @@ async function runAnalysis({ resumeText, jdText, industry, role, stream }) {
   }
 
   const promptA = `You are an elite ATS scoring engine and senior recruiter. Analyse ONLY the resume below. Return ONLY valid JSON, no markdown.
+
+CRITICAL CALIBRATION — READ BEFORE SCORING:
+An AVERAGE resume from a decent college/company should score 45–60 overall.
+A GOOD resume with solid experience but lacking quantification/keywords should score 55–70.
+A STRONG resume with quantified achievements, role-aligned keywords, clean structure should score 70–82.
+ONLY an EXCEPTIONAL resume — perfectly tailored, heavily quantified, zero filler, flawless structure — can score 83+.
+Scores above 85 are EXTREMELY RARE (top 2% of all resumes). Scores above 90 are virtually impossible.
+If you find yourself scoring above 75, re-examine each dimension critically and apply STRICT interpretation.
+
+ROLE ALIGNMENT IS MANDATORY: The resume MUST be evaluated against the Target Role "${role || 'General'}".
+If the resume lacks direct experience/keywords for this specific role, keywordMatch and experienceRelevance MUST be penalised heavily (cap at 50 if no direct role match evidence).
+
 ${resumeOnlyCtx}
 
 ════════════════════════════════════════════════════════════
  DIMENSION 1 — KEYWORD MATCH  (weight 0.28)
 ════════════════════════════════════════════════════════════
 Step 1 – Extract every distinct keyword/phrase from the resume (job titles, tools, methodologies, frameworks, metrics, sector terms, soft-skill phrases, certifications, acronyms).
-Step 2 – Build the "expected keyword set" for the TARGET role/industry context. Count a keyword as PRESENT only if it appears verbatim or as an accepted abbreviation (e.g. "OKR" == "OKRs", "P&L" == "P and L").
+Step 2 – Build the "expected keyword set" for the TARGET role "${role || 'General'}" and industry "${industry || 'General'}". The expected set should contain 40–50 role-specific power keywords. Count a keyword as PRESENT only if it appears verbatim or as an accepted abbreviation.
 Step 3 – Compute:
   rawKW  = (presentCount / expectedCount) × 100  capped at 100
-  densityBonus = min(10, floor(presentCount / 3))   — rewards rich keyword density
-  genericPenalty = count of generic filler phrases × 2  (filler = "team player", "hard worker", "detail-oriented", "fast learner", "passionate", "dynamic", "results-driven" without a metric)
-  keywordMatch = clamp(rawKW + densityBonus − genericPenalty, 0, 100)
-Bands: 90–100 = 30+ role-specific power keywords, near-zero filler; 70–89 = 18–29 keywords; 50–69 = 10–17; below 50 = <10.
+  densityBonus = min(5, floor(presentCount / 5))   — modest reward for keyword density
+  genericPenalty = count of generic filler phrases × 3  (filler = "team player", "hard worker", "detail-oriented", "fast learner", "passionate", "dynamic", "results-driven" without a metric, "go-getter", "self-starter", "proactive")
+  roleAlignmentPenalty = if resume has < 10 keywords matching the TARGET role's expected bank → subtract 15
+  keywordMatch = clamp(rawKW + densityBonus − genericPenalty − roleAlignmentPenalty, 0, 100)
+Bands: 85–100 = 35+ role-specific power keywords, near-zero filler, RARE; 65–84 = 20–34 keywords; 45–64 = 10–19; below 45 = <10.
 
 ════════════════════════════════════════════════════════════
  DIMENSION 2 — RESUME STRUCTURE  (weight 0.12)
