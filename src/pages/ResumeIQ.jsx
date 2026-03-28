@@ -1309,20 +1309,21 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
       'Corporate Strategy Associate':['corporate strategy','strategy associate','strategy consultant','strategic analyst'],
     };
     const titleSigs = TITLE_MAP[roleKey] || [];
-    let expFit = 18;
+    let expFit = 12; // lower default — unrelated role
     for (const sig of titleSigs) {
-      if (resumeLower.includes(sig)) { expFit = 82; break; }
+      if (resumeLower.includes(sig)) { expFit = 78; break; }
     }
-    if (expFit < 82) {
+    if (expFit < 78) {
       const partial = titleSigs.filter(s => resumeLower.includes(s.split(' ')[0]));
-      if (partial.length >= 2) expFit = 58;
-      else if (partial.length === 1) expFit = 40;
+      if (partial.length >= 2) expFit = 48;
+      else if (partial.length === 1) expFit = 30;
     }
 
-    // D3 — Achievements Quality (0.20): quantified bullets
+    // D3 — Achievements Quality (0.20): quantified bullets — stricter counting
     const quantPattern = /\d+[\.,]?\d*\s*(%|x|×|cr|lakh|million|billion|k\b|mn|bn|hrs?|days?|weeks?|months?|years?|people|members?|team|users?|clients?|deals?|projects?)/gi;
     const quantHits = (resumeText.match(quantPattern) || []).length;
-    const achFit = Math.min(quantHits * 10, 100);
+    // Stricter: need more quant bullets to score high
+    const achFit = Math.min(quantHits * 7, 100);
 
     // D4 — Skills Match (0.12): tool/platform signals per role
     const SKILL_MAP = {
@@ -1338,7 +1339,6 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
       'Strategy':           ['excel','powerpoint','mece','scenario planning','financial modelling','okr'],
       'General Management': ['p&l','excel','powerpoint','crm','erp','board reporting','budgeting'],
       'Sales':              ['salesforce','hubspot','crm','excel','powerpoint','sales navigator'],
-      // Stream-specific skill signals
       'Investment Banking Analyst': ['excel','bloomberg','factset','dcf','lbo','pitchbook','financial model','powerpoint'],
       'Equity Research Analyst':    ['bloomberg','factset','excel','financial model','dcf','pitchbook','powerpoint'],
       'PE Analyst':                 ['excel','bloomberg','lbo','dcf','financial model','pitchbook','powerpoint'],
@@ -1392,20 +1392,27 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
     const skillHits2 = skillSigs.filter(s => resumeLower.includes(s)).length;
     const skillFit = Math.min((skillHits2 / Math.max(skillSigs.length, 1)) * 100, 100);
 
-    // D5 — Resume Structure (0.12): structure signals same as overall ATS
+    // D5 — Resume Structure (0.12): stricter structure scoring
     const hasContact = /email|phone|linkedin|@/.test(resumeLower);
     const hasSummary = /summary|objective|profile|about/.test(resumeLower);
     const hasBullets = (resumeText.match(/^[\s]*[-•▸►▪]/m) !== null);
-    const structFit = (hasContact ? 40 : 0) + (hasSummary ? 35 : 0) + (hasBullets ? 25 : 0);
+    const hasEducation = /education|degree|university|college|bachelor|master|mba/i.test(resumeLower);
+    const hasExperience = /experience|work history|employment/i.test(resumeLower);
+    const hasSkillsSection = /skills|technical skills|core competencies/i.test(resumeLower);
+    const structFit = (hasContact ? 20 : 0) + (hasSummary ? 15 : 0) + (hasBullets ? 15 : 0)
+                    + (hasEducation ? 15 : 0) + (hasExperience ? 20 : 0) + (hasSkillsSection ? 15 : 0);
 
     // D6 — Leadership Signals (0.04)
     const leaderPhrases = ['managed a team','led a team','managed team of','led team of','head of','supervised','mentored','coached','direct reports','p&l','board','c-suite'];
     const leaderHits2 = leaderPhrases.filter(p => resumeLower.includes(p)).length;
-    const leaderFit = Math.min(leaderHits2 * 22, 100);
+    const leaderFit = Math.min(leaderHits2 * 18, 100);
 
-    // D7 — ATS Formatting (0.06): detect formatting issues
-    const fmtDeductions = resumeText.includes('\t') ? 15 : 0;
-    const fmtFit = Math.max(100 - fmtDeductions, 60);
+    // D7 — ATS Formatting (0.06): detect formatting issues — stricter
+    let fmtDeductions = 0;
+    if (resumeText.includes('\t')) fmtDeductions += 20;
+    if (/[│┃┆┊╎║]/.test(resumeText)) fmtDeductions += 15; // table chars
+    if (resumeText.split('\n').some(l => l.length > 200)) fmtDeductions += 10; // very long lines suggest bad format
+    const fmtFit = Math.max(100 - fmtDeductions, 40);
 
     // FINAL: identical weights to overall ATS formula
     const rawScore = Math.round(
@@ -1418,10 +1425,12 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
       fmtFit     * 0.06
     );
 
-    // Hard caps: same rules as keyword-count gates
+    // Hard caps based on keyword evidence
     let capped = rawScore;
-    if (hits < 4)  capped = Math.min(capped, 32);
-    else if (hits < 9) capped = Math.min(capped, 58);
+    if (hits < 4)  capped = Math.min(capped, 28);
+    else if (hits < 7)  capped = Math.min(capped, 45);
+    else if (hits < 10) capped = Math.min(capped, 58);
+    else if (hits < 15) capped = Math.min(capped, 72);
 
     return Math.max(0, Math.min(100, capped));
   }
