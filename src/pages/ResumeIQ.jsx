@@ -1409,7 +1409,7 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
     // D6 — Leadership Signals (0.04)
     const leaderPhrases = ['managed a team','led a team','managed team of','led team of','head of','supervised','mentored','coached','direct reports','p&l','board','c-suite'];
     const leaderHits2 = leaderPhrases.filter(p => resumeLower.includes(p)).length;
-    const leaderFit = Math.min(leaderHits2 * 18, 100);
+    const leaderFit = Math.min(leaderHits2 * 22 + 15, 100);
 
     // D7 — ATS Formatting (0.06): detect formatting issues — stricter
     let fmtDeductions = 0;
