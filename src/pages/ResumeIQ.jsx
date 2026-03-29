@@ -1214,8 +1214,8 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
     // D1 — Keyword Match (0.28): same formula as overall ATS keywordMatch dimension
     let kwRaw = (hits / bankSize) * 100;
     // Density bonus same as promptA formula
-    kwRaw += Math.min(10, Math.floor(hits / 3));
-    if (hits < 4) kwRaw *= 0.5;
+    kwRaw += Math.min(12, Math.floor(hits / 3));
+    if (hits < 4) kwRaw *= 0.65;
     const kwHit = Math.min(kwRaw, 100);
 
     // D2 — Experience Relevance (0.18): title signals
