@@ -1403,8 +1403,8 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
     const hasEducation = /education|degree|university|college|bachelor|master|mba/i.test(resumeLower);
     const hasExperience = /experience|work history|employment/i.test(resumeLower);
     const hasSkillsSection = /skills|technical skills|core competencies/i.test(resumeLower);
-    const structFit = (hasContact ? 20 : 0) + (hasSummary ? 15 : 0) + (hasBullets ? 15 : 0)
-                    + (hasEducation ? 15 : 0) + (hasExperience ? 20 : 0) + (hasSkillsSection ? 15 : 0);
+    const structFit = (hasContact ? 22 : 5) + (hasSummary ? 18 : 5) + (hasBullets ? 15 : 5)
+                    + (hasEducation ? 15 : 5) + (hasExperience ? 18 : 5) + (hasSkillsSection ? 12 : 5);
 
     // D6 — Leadership Signals (0.04)
     const leaderPhrases = ['managed a team','led a team','managed team of','led team of','head of','supervised','mentored','coached','direct reports','p&l','board','c-suite'];
