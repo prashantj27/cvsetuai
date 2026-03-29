@@ -832,7 +832,7 @@ For EACH of the 12 roles below, apply this EXTENSIVE formula:
     seniorityFit  × 0.08 +
     languageDensity × 0.05
   )
-  THEN apply hard caps: if matchCount < 4 → cap at 30; if matchCount 4–8 → cap at 55
+  THEN apply hard caps: if matchCount < 4 → cap at 45; if matchCount 4–8 → cap at 65
   THEN ensure no two roles share identical scores (break ties by ±1 based on secondary evidence)
 
 KEYWORD BANKS (match case-insensitively; partial word match counts for multi-word phrases):
