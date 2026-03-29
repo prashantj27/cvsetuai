@@ -1475,22 +1475,22 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
   const jsOverallKw = Math.min((jsOverallHits / Math.max((ROLE_KEYWORD_BANKS[selectedRoleKey] || []).length, 1)) * 100, 100);
   const quantPatternGlobal = /\d+[\.,]?\d*\s*(%|x|×|cr|lakh|million|billion|k\b|mn|bn|hrs?|days?|weeks?|months?|years?|people|members?|team|users?|clients?|deals?|projects?)/gi;
   const globalQuantHits = (resumeText.match(quantPatternGlobal) || []).length;
-  const jsOverallAch = Math.min(globalQuantHits * 7, 100);
-  const jsOverallEst = Math.round(jsOverallKw * 0.35 + jsOverallAch * 0.25 + 50 * 0.40); // rough estimate
+  const jsOverallAch = Math.min(globalQuantHits * 9, 100);
+  const jsOverallEst = Math.round(jsOverallKw * 0.30 + jsOverallAch * 0.20 + 60 * 0.50); // relaxed baseline
   
-  let calibratedAtsScore = resultA.atsScore || 50;
-  // If AI score is much higher than JS estimate, pull it down
-  if (calibratedAtsScore > jsOverallEst + 20) {
-    calibratedAtsScore = Math.round(jsOverallEst * 0.45 + calibratedAtsScore * 0.55);
+  let calibratedAtsScore = resultA.atsScore || 60;
+  // If AI score is much higher than JS estimate, gently pull it down
+  if (calibratedAtsScore > jsOverallEst + 25) {
+    calibratedAtsScore = Math.round(jsOverallEst * 0.35 + calibratedAtsScore * 0.65);
   }
-  // Hard cap: if resume has < 12 role-specific keyword hits, cap at 65
-  if (jsOverallHits < 12) calibratedAtsScore = Math.min(calibratedAtsScore, 65);
-  if (jsOverallHits < 7)  calibratedAtsScore = Math.min(calibratedAtsScore, 52);
-  if (jsOverallHits < 4)  calibratedAtsScore = Math.min(calibratedAtsScore, 38);
+  // Relaxed hard caps based on keyword evidence
+  if (jsOverallHits < 12) calibratedAtsScore = Math.min(calibratedAtsScore, 78);
+  if (jsOverallHits < 7)  calibratedAtsScore = Math.min(calibratedAtsScore, 68);
+  if (jsOverallHits < 4)  calibratedAtsScore = Math.min(calibratedAtsScore, 55);
   // Cap recruiter score similarly
-  let calibratedRecruiterScore = resultA.recruiterScore || 50;
+  let calibratedRecruiterScore = resultA.recruiterScore || 60;
   if (calibratedRecruiterScore > calibratedAtsScore + 15) {
-    calibratedRecruiterScore = calibratedAtsScore + Math.round((calibratedRecruiterScore - calibratedAtsScore) * 0.4);
+    calibratedRecruiterScore = calibratedAtsScore + Math.round((calibratedRecruiterScore - calibratedAtsScore) * 0.5);
   }
 
   // Merge resultC (match data) + resultD (action plan) into a single jdMatch object
