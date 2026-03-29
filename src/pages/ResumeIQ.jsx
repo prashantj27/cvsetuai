@@ -1111,8 +1111,8 @@ D5 — ACHIEVEMENT ALIGNMENT (weight 0.08):
   Each relevant quantified achievement = 15pts, cap at 100.
 
 FINAL: percentage = round(D1×0.35 + D2×0.20 + D3×0.25 + D4×0.12 + D5×0.08)
-IMPORTANT: Be STRICT and realistic. A score above 80 means near-perfect alignment. Average match = 45-60.
-Never inflate scores — a 75% is genuinely strong. Scores above 85% are exceptional.
+IMPORTANT: Be realistic but not overly harsh. A score above 85 means near-perfect alignment. Average match = 60-72.
+Never inflate scores — an 80% is genuinely strong. Scores above 90% are exceptional.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 TOP 15 MISSING JD KEYWORDS — CRITICAL RULES:
