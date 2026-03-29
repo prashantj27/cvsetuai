@@ -3717,42 +3717,8 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
               </div>
             </GlassCard>
 
-            {/* JD Match — compact banner in Overview */}
-            {results.hasJD && results.jdMatch && (
-              <div
-                onClick={() => setTab('JD Match')}
-                style={{ cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:14,
-                  padding:'16px 22px', borderRadius:16,
-                  background:`linear-gradient(135deg, ${scoreBg(results.jdMatch.percentage)}, rgba(255,255,255,0.55))`,
-                  border:`1.5px solid ${scoreColor(results.jdMatch.percentage)}44`,
-                  backdropFilter:'blur(12px)', boxShadow:'0 4px 18px rgba(140,105,50,0.10)',
-                  transition:'box-shadow .2s, transform .2s',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 10px 30px rgba(140,105,50,0.18)'; }}
-                onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 4px 18px rgba(140,105,50,0.10)'; }}
-              >
-                <div style={{ display:'flex', alignItems:'center', gap:16 }}>
-                  <div style={{ textAlign:'center', minWidth:70 }}>
-                    <div style={{ fontFamily:"'Playfair Display',serif", fontSize:38, fontWeight:800, color:scoreColor(results.jdMatch.percentage), lineHeight:1 }}>
-                      {results.jdMatch.percentage}%
-                    </div>
-                    <div style={{ fontSize:10, color:T.muted, letterSpacing:'0.6px', marginTop:3, fontFamily:"'Jost',sans-serif", textTransform:'uppercase' }}>JD Match</div>
-                  </div>
-                  <div style={{ width:1, height:44, background:'rgba(195,165,110,0.3)' }} />
-                  <div>
-                    <div style={{ fontFamily:"'Playfair Display',serif", fontWeight:700, fontSize:15, color:T.text, marginBottom:4 }}>Job Description Analysis Ready</div>
-                    <div style={{ fontSize:12, color:T.muted, fontFamily:"'Jost',sans-serif" }}>
-                      {results.jdMatch.matchingSkills?.length || 0} skills matched · {results.jdMatch.missingSkills?.length || 0} skills missing · {results.jdMatch.roleFitSuggestions?.length || 0} action steps
-                    </div>
-                  </div>
-                </div>
-                <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, color:scoreColor(results.jdMatch.percentage), fontWeight:600, fontFamily:"'Jost',sans-serif", flexShrink:0 }}>
-                  View Full JD Analysis →
-                </div>
-              </div>
-            )}
 
-            {/* Strengths / Weaknesses */}
+
             <div className="riq-2col" style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:20 }}>
               <GlassCard>
                 <SectionHead icon="💪" title="Strengths" />
