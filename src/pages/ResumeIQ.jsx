@@ -643,15 +643,16 @@ async function runAnalysis({ resumeText, jdText, industry, role, stream }) {
   const promptA = `You are an elite ATS scoring engine and senior recruiter. Analyse ONLY the resume below. Return ONLY valid JSON, no markdown.
 
 CRITICAL CALIBRATION — READ BEFORE SCORING:
-An AVERAGE resume from a decent college/company should score 45–60 overall.
-A GOOD resume with solid experience but lacking quantification/keywords should score 55–70.
-A STRONG resume with quantified achievements, role-aligned keywords, clean structure should score 70–82.
-ONLY an EXCEPTIONAL resume — perfectly tailored, heavily quantified, zero filler, flawless structure — can score 83+.
-Scores above 85 are EXTREMELY RARE (top 2% of all resumes). Scores above 90 are virtually impossible.
-If you find yourself scoring above 75, re-examine each dimension critically and apply STRICT interpretation.
+An AVERAGE resume from a decent college/company should score 65–75 overall.
+A GOOD resume with solid experience but lacking quantification/keywords should score 70–80.
+A STRONG resume with quantified achievements, role-aligned keywords, clean structure should score 78–88.
+ONLY an EXCEPTIONAL resume — perfectly tailored, heavily quantified, zero filler, flawless structure — can score 89+.
+Scores above 92 are EXTREMELY RARE (top 2% of all resumes). Scores above 95 are virtually impossible.
+If you find yourself scoring above 88, re-examine each dimension critically and apply STRICT interpretation.
 
-ROLE ALIGNMENT IS MANDATORY: The resume MUST be evaluated against the Target Role "${role || 'General'}".
-If the resume lacks direct experience/keywords for this specific role, keywordMatch and experienceRelevance MUST be penalised heavily (cap at 50 if no direct role match evidence).
+ROLE ALIGNMENT IS MANDATORY: The resume MUST be evaluated against the Target Role "${role || 'General'}" in the "${industry || 'General'}" industry within the "${stream || 'General'}" stream.
+If the resume lacks direct experience/keywords for this specific role, keywordMatch and experienceRelevance MUST be penalised (cap at 65 if no direct role match evidence).
+ALL keyword extraction, scoring dimensions, recommendations, and analysis MUST be contextualised to the selected Stream ("${stream || 'General'}"), Industry ("${industry || 'General'}"), and Role ("${role || 'General'}"). Do NOT provide generic analysis — every insight must reference role-specific expectations.
 
 ${resumeOnlyCtx}
 
