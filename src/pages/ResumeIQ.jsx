@@ -878,16 +878,17 @@ quota, quota attainment, revenue target, ARR, MRR, ACV, TCV, deal size, pipeline
 ════════════════════════════════════════════════════════════
 - Every score must be an integer 0–100
 - CALIBRATION CHECK: After computing all 7 dimensions, verify atsScore falls in the right band:
-    * Average resume from a good school/company → atsScore should be 45–60
-    * Good resume but missing quantification or role keywords → 55–70
-    * Strong, well-structured, keyword-rich, quantified → 70–82
-    * Exceptional (top 2%) → 83–90
-    * If atsScore > 80, re-examine and justify EACH dimension being that high
+    * Average resume from a good school/company → atsScore should be 65–75
+    * Good resume but missing quantification or role keywords → 70–80
+    * Strong, well-structured, keyword-rich, quantified → 78–88
+    * Exceptional (top 2%) → 89–95
+    * If atsScore > 88, re-examine and justify EACH dimension being that high
 - No two roleScores may have the same value — differentiate based on actual resume content
-- All 7 dimension scores must reflect GENUINE analysis of THIS resume, not defaults
+- All 7 dimension scores must reflect GENUINE analysis of THIS resume for the "${role || 'General'}" role in "${industry || 'General'}" industry, not defaults
 - atsScore must equal the weighted formula result above (±1 rounding only)
-- ROLE ALIGNMENT: If the resume doesn't demonstrate direct experience in "${role || 'the target role'}", experienceRelevance MUST be ≤ 55 and keywordMatch MUST be ≤ 60
+- ROLE ALIGNMENT: If the resume doesn't demonstrate direct experience in "${role || 'the target role'}", experienceRelevance MUST be ≤ 65 and keywordMatch MUST be ≤ 70
 - Do NOT output placeholder or average values — compute from the resume text
+- ALL analysis (strengths, weaknesses, atsIssues, recommendations) must reference the specific Stream/Industry/Role context — never generic advice
 - If a Job Description is provided: "allMissingJdKeywords" MUST include EVERY single keyword/phrase/skill/tool found in the JD that does NOT appear in the resume — this is a comprehensive exhaustive list, not a sample.
 - DATE HANDLING: Today's date is ${new Date().toLocaleDateString('en-US', {month:'long',year:'numeric'})}. ALL dates in the resume (2024, 2025, 2026, etc.) are VALID and NOT future-dated. NEVER flag any date as "future-dated employment" or "future date error". Do NOT penalise or flag dates like "2025", "2026", "Jan'26", "Sept'25 - Jan'26" etc. as issues. Treat all dates in the resume as legitimate and current.
 - NEVER include "future-dated" or "future date" in atsIssues — these are false positives caused by model training cutoffs.
