@@ -1313,14 +1313,14 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
       'Corporate Strategy Associate':['corporate strategy','strategy associate','strategy consultant','strategic analyst'],
     };
     const titleSigs = TITLE_MAP[roleKey] || [];
-    let expFit = 12; // lower default — unrelated role
+    let expFit = 30; // higher default — transferable skills baseline
     for (const sig of titleSigs) {
-      if (resumeLower.includes(sig)) { expFit = 78; break; }
+      if (resumeLower.includes(sig)) { expFit = 82; break; }
     }
-    if (expFit < 78) {
+    if (expFit < 82) {
       const partial = titleSigs.filter(s => resumeLower.includes(s.split(' ')[0]));
-      if (partial.length >= 2) expFit = 48;
-      else if (partial.length === 1) expFit = 30;
+      if (partial.length >= 2) expFit = 60;
+      else if (partial.length === 1) expFit = 45;
     }
 
     // D3 — Achievements Quality (0.20): quantified bullets — stricter counting
