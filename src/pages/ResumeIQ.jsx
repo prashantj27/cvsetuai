@@ -1451,7 +1451,7 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
     else if (hits < 7) aiScore = Math.min(aiScore, 60);
     else if (hits < 10) aiScore = Math.min(aiScore, 72);
     else if (hits < 15) aiScore = Math.min(aiScore, 82);
-    const blended = Math.round(jsScore * 0.75 + aiScore * 0.25);
+    const blended = Math.round(jsScore * 0.60 + aiScore * 0.40);
     return { role: roleKey, score: Math.max(0, Math.min(100, blended)) };
   });
 
