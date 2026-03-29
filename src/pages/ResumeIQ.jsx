@@ -4046,8 +4046,8 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
         )}
 
 
-        {/* ════════ DOCUMENT ════════ */}
-        {tab === 'Document' && (
+        {/* ════════ YOUR RESUME ════════ */}
+        {tab === 'Your Resume' && (
           <AnnotatedPDFViewer resumeFile={resumeFile} results={results} />
         )}
 
