@@ -1416,7 +1416,7 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
     if (resumeText.includes('\t')) fmtDeductions += 20;
     if (/[│┃┆┊╎║]/.test(resumeText)) fmtDeductions += 15; // table chars
     if (resumeText.split('\n').some(l => l.length > 200)) fmtDeductions += 10; // very long lines suggest bad format
-    const fmtFit = Math.max(100 - fmtDeductions, 40);
+    const fmtFit = Math.max(100 - fmtDeductions, 55);
 
     // FINAL: identical weights to overall ATS formula
     const rawScore = Math.round(
