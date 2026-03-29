@@ -784,10 +784,10 @@ Score EVERY role based SOLELY on the resume text above.
 CRITICAL ANTI-BIAS RULES:
 - The role with the HIGHEST score MUST genuinely be the best match for THIS specific resume
 - NEVER assign a high score to a role unless the resume contains substantial evidence for it
-- A role with 0-3 keyword matches from its bank CANNOT score above 30 — hard cap
-- A role with 4-8 keyword matches CANNOT score above 55 — hard cap
-- Only roles with 9+ keyword matches from their bank can score above 56
-- All 12 scores MUST be genuinely differentiated based on actual resume content
+- A role with 0-3 keyword matches from its bank CANNOT score above 45 — hard cap
+- A role with 4-8 keyword matches CANNOT score above 65 — hard cap
+- Only roles with 9+ keyword matches from their bank can score above 66
+- All scores MUST be genuinely differentiated based on actual resume content for "${stream || 'General'}" stream roles
 - No clustering of scores — spread must reflect true resume signal strength
 
 For EACH of the 12 roles below, apply this EXTENSIVE formula:
