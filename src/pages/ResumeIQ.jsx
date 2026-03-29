@@ -2468,7 +2468,7 @@ QUALITY RULES:
       );
       const candidate = validateImproved(result.improved);
       const newReason = (result.reason || '').trim();
-      if (candidate && candidate !== item.original) {
+      if (candidate) {
         setImprovedState(candidate);
         setReasonState(newReason || 'Rewritten with stronger action verb, specificity, and measurable impact.');
       }
