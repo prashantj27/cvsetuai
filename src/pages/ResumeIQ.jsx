@@ -1431,10 +1431,10 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
 
     // Hard caps based on keyword evidence
     let capped = rawScore;
-    if (hits < 4)  capped = Math.min(capped, 28);
-    else if (hits < 7)  capped = Math.min(capped, 45);
-    else if (hits < 10) capped = Math.min(capped, 58);
-    else if (hits < 15) capped = Math.min(capped, 72);
+    if (hits < 4)  capped = Math.min(capped, 45);
+    else if (hits < 7)  capped = Math.min(capped, 60);
+    else if (hits < 10) capped = Math.min(capped, 72);
+    else if (hits < 15) capped = Math.min(capped, 82);
 
     return Math.max(0, Math.min(100, capped));
   }
