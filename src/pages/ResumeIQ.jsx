@@ -660,14 +660,14 @@ ${resumeOnlyCtx}
  DIMENSION 1 — KEYWORD MATCH  (weight 0.28)
 ════════════════════════════════════════════════════════════
 Step 1 – Extract every distinct keyword/phrase from the resume (job titles, tools, methodologies, frameworks, metrics, sector terms, soft-skill phrases, certifications, acronyms).
-Step 2 – Build the "expected keyword set" for the TARGET role "${role || 'General'}" and industry "${industry || 'General'}". The expected set should contain 40–50 role-specific power keywords. Count a keyword as PRESENT only if it appears verbatim or as an accepted abbreviation.
+Step 2 – Build the "expected keyword set" for the TARGET role "${role || 'General'}" in the "${industry || 'General'}" industry and "${stream || 'General'}" stream. The expected set should contain 40–50 role-specific power keywords that a recruiter hiring for THIS EXACT ROLE in THIS INDUSTRY would look for. Count a keyword as PRESENT only if it appears verbatim or as an accepted abbreviation.
 Step 3 – Compute:
   rawKW  = (presentCount / expectedCount) × 100  capped at 100
-  densityBonus = min(5, floor(presentCount / 5))   — modest reward for keyword density
-  genericPenalty = count of generic filler phrases × 3  (filler = "team player", "hard worker", "detail-oriented", "fast learner", "passionate", "dynamic", "results-driven" without a metric, "go-getter", "self-starter", "proactive")
-  roleAlignmentPenalty = if resume has < 10 keywords matching the TARGET role's expected bank → subtract 15
+  densityBonus = min(8, floor(presentCount / 4))   — reward for keyword density
+  genericPenalty = count of generic filler phrases × 2  (filler = "team player", "hard worker", "detail-oriented", "fast learner", "passionate", "dynamic", "results-driven" without a metric, "go-getter", "self-starter", "proactive")
+  roleAlignmentPenalty = if resume has < 8 keywords matching the TARGET role's expected bank → subtract 10
   keywordMatch = clamp(rawKW + densityBonus − genericPenalty − roleAlignmentPenalty, 0, 100)
-Bands: 85–100 = 35+ role-specific power keywords, near-zero filler, RARE; 65–84 = 20–34 keywords; 45–64 = 10–19; below 45 = <10.
+Bands: 85–100 = 35+ role-specific power keywords, near-zero filler; 70–84 = 20–34 keywords; 55–69 = 10–19; below 55 = <10.
 
 ════════════════════════════════════════════════════════════
  DIMENSION 2 — RESUME STRUCTURE  (weight 0.12)
