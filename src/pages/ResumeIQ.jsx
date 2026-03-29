@@ -920,17 +920,18 @@ Each recommendation MUST be:
 ════════════════════════════════════════════════════════════
  KEYWORD & SKILLS EXTRACTION — HIGH ACCURACY REQUIRED
 ════════════════════════════════════════════════════════════
-Extract the following from the resume text with maximum accuracy and completeness:
+Extract the following from the resume text with maximum accuracy and completeness, CONTEXTUALISED to the "${stream || 'General'}" stream, "${industry || 'General'}" industry, and "${role || 'General'}" role:
 
 "extractedKeywords": Extract ALL meaningful keywords/phrases that actually appear in the resume:
 - Include: job titles, company names, tools, platforms, methodologies, frameworks, domain terms, metrics, certifications, acronyms, industry-specific terminology
 - Include: quantified outcomes (e.g. "30% revenue growth"), strategic terms, functional skills
+- PRIORITISE keywords that are relevant to the "${role || 'General'}" role in "${industry || 'General'}" — flag which ones are role-critical vs general
 - MINIMUM 20 keywords, ideally 25–30
 - Only include what genuinely exists in the resume text — no fabrication
 
 "skills": Extract ALL technical and soft skills explicitly mentioned or clearly demonstrated in the resume:
-- Tier 1 Hard Skills: software, tools, programming languages, platforms, certifications (e.g. "Python", "Tableau", "PMP", "SQL", "Excel", "Power BI")
-- Tier 2 Domain Skills: industry methodologies, frameworks, processes (e.g. "Agile", "Six Sigma", "Financial Modelling", "Business Analysis")
+- Tier 1 Hard Skills: software, tools, programming languages, platforms, certifications relevant to "${role || 'General'}" (e.g. "Python", "Tableau", "PMP", "SQL", "Excel", "Power BI")
+- Tier 2 Domain Skills: industry methodologies, frameworks, processes specific to "${industry || 'General'}" (e.g. "Agile", "Six Sigma", "Financial Modelling", "Business Analysis")
 - Tier 3 Soft Skills: only include if backed by concrete evidence in the resume (e.g. "Team Leadership" only if they managed a team)
 - MINIMUM 12 skills, ideally 15–20
 - Only include skills that genuinely appear in the resume
