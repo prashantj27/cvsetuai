@@ -1446,10 +1446,10 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
     const hits    = countKeywordHits(roleKey);
     let aiScore   = aiRs ? aiRs.score : jsScore;
     // Apply strict keyword-based caps to AI scores
-    if (hits < 4)  aiScore = Math.min(aiScore, 28);
-    else if (hits < 7) aiScore = Math.min(aiScore, 45);
-    else if (hits < 10) aiScore = Math.min(aiScore, 58);
-    else if (hits < 15) aiScore = Math.min(aiScore, 72);
+    if (hits < 4)  aiScore = Math.min(aiScore, 45);
+    else if (hits < 7) aiScore = Math.min(aiScore, 60);
+    else if (hits < 10) aiScore = Math.min(aiScore, 72);
+    else if (hits < 15) aiScore = Math.min(aiScore, 82);
     const blended = Math.round(jsScore * 0.75 + aiScore * 0.25);
     return { role: roleKey, score: Math.max(0, Math.min(100, blended)) };
   });
