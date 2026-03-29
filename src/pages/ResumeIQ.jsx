@@ -3164,35 +3164,7 @@ function AnnotatedPDFViewer({ resumeFile, results }) {
           </span>
         </div>
 
-        {/* Row 2: download buttons — always full-width, clearly visible */}
-        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <span style={{ fontSize:12, color:T.muted, fontFamily:"'Jost',sans-serif", marginRight:4, whiteSpace:'nowrap' }}>
-            ⬇ Download as:
-          </span>
-
-          {/* PDF button */}
-          <button className="btn-primary" onClick={() => handleDownload('pdf')} disabled={downloading}
-            style={{ padding:'10px 20px', fontSize:13, display:'flex', alignItems:'center', gap:7, opacity:downloading?0.7:1, borderRadius:12, whiteSpace:'nowrap', minWidth:150 }}>
-            {downloading
-              ? <><span style={{display:'inline-block',animation:'spin 1s linear infinite'}}>⟳</span> Preparing…</>
-              : <>📄 PDF</>}
-          </button>
-
-          {/* Word button */}
-          <button onClick={() => handleDownload('word')} disabled={downloading}
-            style={{
-              padding:'10px 20px', fontSize:13, display:'flex', alignItems:'center', gap:7,
-              borderRadius:12, whiteSpace:'nowrap', minWidth:150, cursor: downloading ? 'not-allowed' : 'pointer',
-              opacity: downloading ? 0.6 : 1,
-              background:'rgba(74,112,156,0.12)', border:`1.5px solid rgba(74,112,156,0.40)`,
-              color: T.blue, fontFamily:"'Jost',sans-serif", fontWeight:600,
-              transition:'all 0.2s ease',
-            }}
-            onMouseEnter={e => { if(!downloading){ e.currentTarget.style.background='rgba(74,112,156,0.22)'; e.currentTarget.style.borderColor='rgba(74,112,156,0.65)'; }}}
-            onMouseLeave={e => { e.currentTarget.style.background='rgba(74,112,156,0.12)'; e.currentTarget.style.borderColor='rgba(74,112,156,0.40)'; }}>
-            📝 Word (.doc)
-          </button>
-        </div>
+        {/* Download buttons removed from document page */}
       </GlassCard>
 
       {/* ── PDF Pages ── */}
