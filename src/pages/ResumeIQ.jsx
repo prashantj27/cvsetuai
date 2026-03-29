@@ -1327,7 +1327,7 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
     const quantPattern = /\d+[\.,]?\d*\s*(%|x|×|cr|lakh|million|billion|k\b|mn|bn|hrs?|days?|weeks?|months?|years?|people|members?|team|users?|clients?|deals?|projects?)/gi;
     const quantHits = (resumeText.match(quantPattern) || []).length;
     // Stricter: need more quant bullets to score high
-    const achFit = Math.min(quantHits * 7, 100);
+    const achFit = Math.min(quantHits * 9, 100);
 
     // D4 — Skills Match (0.12): tool/platform signals per role
     const SKILL_MAP = {
