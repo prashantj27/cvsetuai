@@ -2397,16 +2397,26 @@ function LineItemCard({ item }) {
   /* Validation — enforce 3%-10% window and no identical lines */
   function validateImproved(raw) {
     const t = (raw || '').trim();
-    if (!t) return item.original;
-    if (t === item.original) return item.original; // must not be identical
+    if (!t) return null;
+    if (t === item.original) return null; // must not be identical
     const tLen = effectiveLength(t);
-    if (tLen < minChars) return item.original; // less than 3% increase
-    if (tLen > maxChars) return item.original; // more than 10% increase
+    if (tLen < minChars) return null; // less than 3% increase
+    if (tLen > maxChars) return null; // more than 10% increase
     return t;
   }
 
-  const [improvedState, setImprovedState] = useState(() => validateImproved(item.improved));
+  const validatedInitial = validateImproved(item.improved);
+  const [improvedState, setImprovedState] = useState(validatedInitial);
   const [reasonState,   setReasonState]   = useState(item.reason || '');
+  const needsAutoRegen = useRef(!validatedInitial);
+
+  // Auto-regenerate if initial improved was invalid/identical
+  useEffect(() => {
+    if (needsAutoRegen.current) {
+      needsAutoRegen.current = false;
+      regenerate(0);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [generating,    setGenerating]    = useState(false);
   // charBias: cumulative ±1% steps controlled by A↓ / A↑ buttons
   // 0 = default (3%-10%), negative = tighter toward 3%, positive = toward 10%
@@ -2458,7 +2468,7 @@ QUALITY RULES:
       );
       const candidate = validateImproved(result.improved);
       const newReason = (result.reason || '').trim();
-      if (candidate && candidate !== item.original) {
+      if (candidate) {
         setImprovedState(candidate);
         setReasonState(newReason || 'Rewritten with stronger action verb, specificity, and measurable impact.');
       }
@@ -3164,35 +3174,7 @@ function AnnotatedPDFViewer({ resumeFile, results }) {
           </span>
         </div>
 
-        {/* Row 2: download buttons — always full-width, clearly visible */}
-        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <span style={{ fontSize:12, color:T.muted, fontFamily:"'Jost',sans-serif", marginRight:4, whiteSpace:'nowrap' }}>
-            ⬇ Download as:
-          </span>
-
-          {/* PDF button */}
-          <button className="btn-primary" onClick={() => handleDownload('pdf')} disabled={downloading}
-            style={{ padding:'10px 20px', fontSize:13, display:'flex', alignItems:'center', gap:7, opacity:downloading?0.7:1, borderRadius:12, whiteSpace:'nowrap', minWidth:150 }}>
-            {downloading
-              ? <><span style={{display:'inline-block',animation:'spin 1s linear infinite'}}>⟳</span> Preparing…</>
-              : <>📄 PDF</>}
-          </button>
-
-          {/* Word button */}
-          <button onClick={() => handleDownload('word')} disabled={downloading}
-            style={{
-              padding:'10px 20px', fontSize:13, display:'flex', alignItems:'center', gap:7,
-              borderRadius:12, whiteSpace:'nowrap', minWidth:150, cursor: downloading ? 'not-allowed' : 'pointer',
-              opacity: downloading ? 0.6 : 1,
-              background:'rgba(74,112,156,0.12)', border:`1.5px solid rgba(74,112,156,0.40)`,
-              color: T.blue, fontFamily:"'Jost',sans-serif", fontWeight:600,
-              transition:'all 0.2s ease',
-            }}
-            onMouseEnter={e => { if(!downloading){ e.currentTarget.style.background='rgba(74,112,156,0.22)'; e.currentTarget.style.borderColor='rgba(74,112,156,0.65)'; }}}
-            onMouseLeave={e => { e.currentTarget.style.background='rgba(74,112,156,0.12)'; e.currentTarget.style.borderColor='rgba(74,112,156,0.40)'; }}>
-            📝 Word (.doc)
-          </button>
-        </div>
+        {/* Download buttons removed from document page */}
       </GlassCard>
 
       {/* ── PDF Pages ── */}
@@ -3461,7 +3443,7 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
   const chatEnd = useRef();
-  const TABS = ['Overview','Scores','Keywords','Analysis','Document','AI Coach','PDF Report', ...(results.hasJD ? ['JD Match'] : [])];
+  const TABS = ['Overview','Scores','Keywords','Analysis','Your Resume','AI Coach','PDF Report', ...(results.hasJD ? ['JD Match'] : [])];
   const contentRef = useRef(null);
 
   useEffect(() => { chatEnd.current?.scrollIntoView({ behavior:'smooth' }); }, [history]);
@@ -4046,8 +4028,8 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
         )}
 
 
-        {/* ════════ DOCUMENT ════════ */}
-        {tab === 'Document' && (
+        {/* ════════ YOUR RESUME ════════ */}
+        {tab === 'Your Resume' && (
           <AnnotatedPDFViewer resumeFile={resumeFile} results={results} />
         )}
 
