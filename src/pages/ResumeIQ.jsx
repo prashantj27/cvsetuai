@@ -3461,7 +3461,7 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
   const chatEnd = useRef();
-  const TABS = ['Overview','Scores','Keywords','Analysis','Document','AI Coach','PDF Report', ...(results.hasJD ? ['JD Match'] : [])];
+  const TABS = ['Overview','Scores','Keywords','Analysis','Your Resume','AI Coach','PDF Report', ...(results.hasJD ? ['JD Match'] : [])];
   const contentRef = useRef(null);
 
   useEffect(() => { chatEnd.current?.scrollIntoView({ behavior:'smooth' }); }, [history]);
