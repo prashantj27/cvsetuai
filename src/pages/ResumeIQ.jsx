@@ -2397,16 +2397,26 @@ function LineItemCard({ item }) {
   /* Validation — enforce 3%-10% window and no identical lines */
   function validateImproved(raw) {
     const t = (raw || '').trim();
-    if (!t) return item.original;
-    if (t === item.original) return item.original; // must not be identical
+    if (!t) return null;
+    if (t === item.original) return null; // must not be identical
     const tLen = effectiveLength(t);
-    if (tLen < minChars) return item.original; // less than 3% increase
-    if (tLen > maxChars) return item.original; // more than 10% increase
+    if (tLen < minChars) return null; // less than 3% increase
+    if (tLen > maxChars) return null; // more than 10% increase
     return t;
   }
 
-  const [improvedState, setImprovedState] = useState(() => validateImproved(item.improved));
+  const validatedInitial = validateImproved(item.improved);
+  const [improvedState, setImprovedState] = useState(validatedInitial);
   const [reasonState,   setReasonState]   = useState(item.reason || '');
+  const needsAutoRegen = useRef(!validatedInitial);
+
+  // Auto-regenerate if initial improved was invalid/identical
+  useEffect(() => {
+    if (needsAutoRegen.current) {
+      needsAutoRegen.current = false;
+      regenerate(0);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [generating,    setGenerating]    = useState(false);
   // charBias: cumulative ±1% steps controlled by A↓ / A↑ buttons
   // 0 = default (3%-10%), negative = tighter toward 3%, positive = toward 10%
