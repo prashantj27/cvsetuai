@@ -1523,19 +1523,6 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
     return { role: roleKey, score: Math.max(0, Math.min(100, blended)) };
   });
 
-  // Sort ALL roles by calculated score (descending), de-duplicate scores,
-  // then take the top 10 — roles are picked on merit, not by list position.
-  const usedScores = new Set();
-  const deduped = streamRoleScores
-    .sort((a, b) => b.score - a.score)
-    .map(rs => {
-      let s = rs.score;
-      while (usedScores.has(s)) s = Math.max(0, s - 1);
-      usedScores.add(s);
-      return { ...rs, score: s };
-    })
-    .slice(0, 10); // ← top 10 by actual score, after scoring every role
-
   // ── JS-side calibration of AI's overall ATS score ─────────────────────────
   // The AI tends to inflate scores. We compute a JS-side ATS estimate and
   // blend it with the AI score to ground it in reality.
@@ -1545,22 +1532,36 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
   const quantPatternGlobal = /\d+[\.,]?\d*\s*(%|x|×|cr|lakh|million|billion|k\b|mn|bn|hrs?|days?|weeks?|months?|years?|people|members?|team|users?|clients?|deals?|projects?)/gi;
   const globalQuantHits = (resumeText.match(quantPatternGlobal) || []).length;
   const jsOverallAch = Math.min(globalQuantHits * 9, 100);
-  const jsOverallEst = Math.round(jsOverallKw * 0.30 + jsOverallAch * 0.20 + 60 * 0.50); // relaxed baseline
+  const jsOverallEst = Math.round(jsOverallKw * 0.30 + jsOverallAch * 0.20 + 60 * 0.50);
   
   let calibratedAtsScore = resultA.atsScore || 60;
-  // If AI score is much higher than JS estimate, gently pull it down
   if (calibratedAtsScore > jsOverallEst + 25) {
     calibratedAtsScore = Math.round(jsOverallEst * 0.35 + calibratedAtsScore * 0.65);
   }
-  // Relaxed hard caps based on keyword evidence
   if (jsOverallHits < 12) calibratedAtsScore = Math.min(calibratedAtsScore, 78);
   if (jsOverallHits < 7)  calibratedAtsScore = Math.min(calibratedAtsScore, 68);
   if (jsOverallHits < 4)  calibratedAtsScore = Math.min(calibratedAtsScore, 55);
-  // Cap recruiter score similarly
   let calibratedRecruiterScore = resultA.recruiterScore || 60;
   if (calibratedRecruiterScore > calibratedAtsScore + 15) {
     calibratedRecruiterScore = calibratedAtsScore + Math.round((calibratedRecruiterScore - calibratedAtsScore) * 0.5);
   }
+
+  // Anchor multi-role scores to the calibrated overall ATS score.
+  const selectedRoleEntry = streamRoleScores.find(r => r.role === selectedRoleKey);
+  const rawSelectedScore = selectedRoleEntry ? selectedRoleEntry.score : (streamRoleScores[0]?.score || 70);
+  const usedScores = new Set();
+  const deduped = streamRoleScores
+    .sort((a, b) => b.score - a.score)
+    .map(rs => {
+      let s = rawSelectedScore > 0
+        ? Math.round(rs.score * (calibratedAtsScore / rawSelectedScore))
+        : rs.score;
+      s = Math.max(0, Math.min(100, s));
+      while (usedScores.has(s)) s = Math.max(0, s - 1);
+      usedScores.add(s);
+      return { ...rs, score: s };
+    })
+    .slice(0, 10);
 
   // Merge resultC (match data) + resultD (action plan) into a single jdMatch object
   let jdMatch = null;
