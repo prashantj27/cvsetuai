@@ -7503,7 +7503,7 @@ IMPORTANT for sidebarLayout:
 
 Analyze the image carefully and fill in the ACTUAL values you see. Be precise about colors (use hex), sizes (use px numbers), and layout details.`;
 
-  const analysisRes = await fetch(`${SUPABASE_URL}/functions/v1/resume-analyze`, {
+  const analysisRes = await enqueue(() => fetchWithRetry(`${SUPABASE_URL}/functions/v1/resume-analyze`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -7515,12 +7515,8 @@ Analyze the image carefully and fill in the ACTUAL values you see. Be precise ab
       imageBase64: pageImageBase64,
       systemPrompt: "You are a pixel-perfect HTML/CSS analyst. Return ONLY valid JSON. No markdown, no fences."
     })
-  });
+  }));
 
-  if (!analysisRes.ok) {
-    const errText = await analysisRes.text().catch(() => 'Unknown');
-    throw new Error(`Template analysis failed: ${errText.slice(0, 200)}`);
-  }
   const analysisData = await analysisRes.json();
   if (analysisData.error) throw new Error(analysisData.error);
   const specText = analysisData.text || '{}';
