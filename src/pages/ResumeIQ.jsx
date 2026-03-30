@@ -1523,13 +1523,23 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
     return { role: roleKey, score: Math.max(0, Math.min(100, blended)) };
   });
 
+  // Anchor multi-role scores to the calibrated overall ATS score.
+  // The selected role's score should align closely with calibratedAtsScore;
+  // other roles scale proportionally so the ranking stays consistent.
+  const selectedRoleEntry = streamRoleScores.find(r => r.role === (role || 'Business Analyst'));
+  const rawSelectedScore = selectedRoleEntry ? selectedRoleEntry.score : (streamRoleScores[0]?.score || 70);
+
   // Sort ALL roles by calculated score (descending), de-duplicate scores,
   // then take the top 10 — roles are picked on merit, not by list position.
   const usedScores = new Set();
   const deduped = streamRoleScores
     .sort((a, b) => b.score - a.score)
     .map(rs => {
-      let s = rs.score;
+      // Scale each role score relative to the calibrated ATS score
+      let s = rawSelectedScore > 0
+        ? Math.round(rs.score * (calibratedAtsScore / rawSelectedScore))
+        : rs.score;
+      s = Math.max(0, Math.min(100, s));
       while (usedScores.has(s)) s = Math.max(0, s - 1);
       usedScores.add(s);
       return { ...rs, score: s };
