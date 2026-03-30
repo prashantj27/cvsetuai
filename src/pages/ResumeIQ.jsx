@@ -7564,7 +7564,7 @@ ${rawInfo}
 
 Now generate the complete pixel-perfect HTML.`;
 
-  const genRes = await fetch(`${SUPABASE_URL}/functions/v1/resume-analyze`, {
+  const genRes = await enqueue(() => fetchWithRetry(`${SUPABASE_URL}/functions/v1/resume-analyze`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -7576,12 +7576,8 @@ Now generate the complete pixel-perfect HTML.`;
       imageBase64: pageImageBase64,
       systemPrompt: "You are an expert HTML developer. Return ONLY raw HTML starting with <div. No markdown, no code fences, no explanation."
     })
-  });
+  }));
 
-  if (!genRes.ok) {
-    const errText = await genRes.text().catch(() => 'Unknown');
-    throw new Error(`HTML generation failed: ${errText.slice(0, 200)}`);
-  }
   const genData = await genRes.json();
   if (genData.error) throw new Error(genData.error);
   const html = genData.text || '';
