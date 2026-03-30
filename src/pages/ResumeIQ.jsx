@@ -1584,8 +1584,26 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
     return !text.includes('future-dated') && !text.includes('future date') && !text.includes('future employment');
   });
 
+  // Align dimension subscores with calibrated ATS score so weighted sum matches
+  const rawScores = resultA.scores || {};
+  const weights = { keywordMatch: 0.28, achievements: 0.20, experienceRelevance: 0.18, resumeStructure: 0.12, skillsMatch: 0.12, atsFormatting: 0.06, leadershipSignals: 0.04 };
+  const rawWeightedSum = Object.entries(weights).reduce((s, [k, w]) => s + (rawScores[k] || 60) * w, 0);
+  const scaleFactor = rawWeightedSum > 0 ? calibratedAtsScore / rawWeightedSum : 1;
+  const calibratedScores = {};
+  for (const [k, w] of Object.entries(weights)) {
+    calibratedScores[k] = Math.max(0, Math.min(100, Math.round((rawScores[k] || 60) * scaleFactor)));
+  }
+  // Verify: adjust rounding so weighted sum matches calibratedAtsScore exactly
+  const newWeightedSum = Math.round(Object.entries(weights).reduce((s, [k, w]) => s + calibratedScores[k] * w, 0));
+  if (newWeightedSum !== calibratedAtsScore) {
+    // Adjust the highest-weight dimension to compensate
+    const diff = calibratedAtsScore - newWeightedSum;
+    calibratedScores.keywordMatch = Math.max(0, Math.min(100, calibratedScores.keywordMatch + Math.round(diff / 0.28)));
+  }
+
   const merged = {
     ...resultA,
+    scores: calibratedScores,
     atsScore: calibratedAtsScore,
     recruiterScore: calibratedRecruiterScore,
     atsIssues: filteredAtsIssues,
