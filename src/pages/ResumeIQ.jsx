@@ -368,48 +368,116 @@ function extractJSON(str) {
 
 /* ─────────────────────────────────────────────
    AI API — ANALYSIS (via Lovable Cloud Edge Function)
+   with Load Balancer: retry, concurrency limit, queue
 ───────────────────────────────────────────── */
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-async function callClaude(userPrompt, maxTokens = 8192) {
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/resume-analyze`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-    },
-    body: JSON.stringify({ prompt: userPrompt, maxTokens })
+/* ── Request Queue & Concurrency Limiter ──────────────────────── */
+const MAX_CONCURRENT = 3;          // max simultaneous API calls
+const MAX_RETRIES = 3;             // retry on 429 / 5xx / network
+const BASE_DELAY_MS = 1500;        // exponential backoff base
+let _activeRequests = 0;
+const _requestQueue = [];
+
+function _processQueue() {
+  while (_requestQueue.length > 0 && _activeRequests < MAX_CONCURRENT) {
+    const { resolve, reject, fn } = _requestQueue.shift();
+    _activeRequests++;
+    fn()
+      .then(resolve)
+      .catch(reject)
+      .finally(() => { _activeRequests--; _processQueue(); });
+  }
+}
+
+function enqueue(fn) {
+  return new Promise((resolve, reject) => {
+    _requestQueue.push({ resolve, reject, fn });
+    _processQueue();
   });
-  if (!res.ok) {
-    const errText = await res.text().catch(() => 'Unknown error');
-    throw new Error(`API error ${res.status}: ${errText.slice(0, 300)}`);
-  }
-  const d = await res.json();
-  if (d.error) throw new Error(d.error);
-  const rawText = d.text || '';
-  if (!rawText) throw new Error('Empty response from AI. Please try again.');
-  console.log('[ResumeIQ] AI response length:', rawText.length, 'finishReason:', d.finishReason);
-  
-  // Strip markdown code fences if present
-  let cleaned = rawText.trim();
-  if (cleaned.startsWith('```json')) cleaned = cleaned.slice(7);
-  else if (cleaned.startsWith('```')) cleaned = cleaned.slice(3);
-  if (cleaned.endsWith('```')) cleaned = cleaned.slice(0, -3);
-  cleaned = cleaned.trim();
-  
-  try { return JSON.parse(extractJSON(cleaned)); }
-  catch (parseErr) {
+}
+
+async function fetchWithRetry(url, options, retries = MAX_RETRIES) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const partial = extractJSON(cleaned);
-      let depth = 0, arrDepth = 0;
-      for (const ch of partial) {
-        if (ch === '{') depth++; else if (ch === '}') depth--;
-        else if (ch === '[') arrDepth++; else if (ch === ']') arrDepth--;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 120000); // 2min timeout
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timeout);
+
+      if (res.ok) return res;
+
+      // Retry on 429 (rate limit) or 5xx (server error)
+      if ((res.status === 429 || res.status >= 500) && attempt < retries) {
+        const retryAfter = res.headers.get('retry-after');
+        const delay = retryAfter
+          ? parseInt(retryAfter, 10) * 1000
+          : BASE_DELAY_MS * Math.pow(2, attempt) + Math.random() * 500;
+        console.warn(`[LoadBalancer] ${res.status} — retry ${attempt + 1}/${retries} in ${Math.round(delay)}ms`);
+        await new Promise(r => setTimeout(r, delay));
+        continue;
       }
-      return JSON.parse(partial + ']'.repeat(Math.max(0,arrDepth)) + '}'.repeat(Math.max(0,depth)));
-    } catch { throw new Error(`JSON parse failed. Detail: ${parseErr.message}. Response preview: ${cleaned.slice(0, 200)}`); }
+
+      // Non-retryable error
+      const errText = await res.text().catch(() => 'Unknown error');
+      throw new Error(`API error ${res.status}: ${errText.slice(0, 300)}`);
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        if (attempt < retries) {
+          console.warn(`[LoadBalancer] Request timeout — retry ${attempt + 1}/${retries}`);
+          await new Promise(r => setTimeout(r, BASE_DELAY_MS * Math.pow(2, attempt)));
+          continue;
+        }
+        throw new Error('Request timed out after multiple retries. Please try again.');
+      }
+      // Network errors — retry
+      if (attempt < retries && !err.message.startsWith('API error')) {
+        console.warn(`[LoadBalancer] Network error — retry ${attempt + 1}/${retries}:`, err.message);
+        await new Promise(r => setTimeout(r, BASE_DELAY_MS * Math.pow(2, attempt)));
+        continue;
+      }
+      throw err;
+    }
   }
+}
+
+async function callClaude(userPrompt, maxTokens = 8192) {
+  return enqueue(async () => {
+    const res = await fetchWithRetry(`${SUPABASE_URL}/functions/v1/resume-analyze`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+      },
+      body: JSON.stringify({ prompt: userPrompt, maxTokens })
+    });
+    const d = await res.json();
+    if (d.error) throw new Error(d.error);
+    const rawText = d.text || '';
+    if (!rawText) throw new Error('Empty response from AI. Please try again.');
+    console.log('[ResumeIQ] AI response length:', rawText.length, 'finishReason:', d.finishReason);
+    
+    // Strip markdown code fences if present
+    let cleaned = rawText.trim();
+    if (cleaned.startsWith('```json')) cleaned = cleaned.slice(7);
+    else if (cleaned.startsWith('```')) cleaned = cleaned.slice(3);
+    if (cleaned.endsWith('```')) cleaned = cleaned.slice(0, -3);
+    cleaned = cleaned.trim();
+    
+    try { return JSON.parse(extractJSON(cleaned)); }
+    catch (parseErr) {
+      try {
+        const partial = extractJSON(cleaned);
+        let depth = 0, arrDepth = 0;
+        for (const ch of partial) {
+          if (ch === '{') depth++; else if (ch === '}') depth--;
+          else if (ch === '[') arrDepth++; else if (ch === ']') arrDepth--;
+        }
+        return JSON.parse(partial + ']'.repeat(Math.max(0,arrDepth)) + '}'.repeat(Math.max(0,depth)));
+      } catch { throw new Error(`JSON parse failed. Detail: ${parseErr.message}. Response preview: ${cleaned.slice(0, 200)}`); }
+    }
+  });
 }
 
 /* ─────────────────────────────────────────────
@@ -1541,17 +1609,19 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
 ───────────────────────────────────────────── */
 async function sendChat(history, ctx) {
   const systemPrompt = `You are ResumeIQ Coach, an expert career advisor. Resume context: ATS Score ${ctx.atsScore}/100. Issues: ${ctx.weaknesses?.join(', ')}. Strengths: ${ctx.strengths?.slice(0,2).join(', ')}. FORMAT your replies using: ## for main section headings, ### for sub-headings, - for bullet points, **text** for bold key terms, and numbered lists (1. 2. 3.) for action steps. Use colourful structured sections. Be specific, actionable, and concise. Max 4 sections.`;
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/resume-chat`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-    },
-    body: JSON.stringify({ messages: history, systemPrompt })
+  return enqueue(async () => {
+    const res = await fetchWithRetry(`${SUPABASE_URL}/functions/v1/resume-chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+      },
+      body: JSON.stringify({ messages: history, systemPrompt })
+    });
+    const d = await res.json();
+    if (d.error) throw new Error(d.error);
+    return d.text;
   });
-  const d = await res.json();
-  if (d.error) throw new Error(d.error);
-  return d.text;
 }
 
 /* ─────────────────────────────────────────────
@@ -7433,7 +7503,7 @@ IMPORTANT for sidebarLayout:
 
 Analyze the image carefully and fill in the ACTUAL values you see. Be precise about colors (use hex), sizes (use px numbers), and layout details.`;
 
-  const analysisRes = await fetch(`${SUPABASE_URL}/functions/v1/resume-analyze`, {
+  const analysisRes = await enqueue(() => fetchWithRetry(`${SUPABASE_URL}/functions/v1/resume-analyze`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -7445,12 +7515,8 @@ Analyze the image carefully and fill in the ACTUAL values you see. Be precise ab
       imageBase64: pageImageBase64,
       systemPrompt: "You are a pixel-perfect HTML/CSS analyst. Return ONLY valid JSON. No markdown, no fences."
     })
-  });
+  }));
 
-  if (!analysisRes.ok) {
-    const errText = await analysisRes.text().catch(() => 'Unknown');
-    throw new Error(`Template analysis failed: ${errText.slice(0, 200)}`);
-  }
   const analysisData = await analysisRes.json();
   if (analysisData.error) throw new Error(analysisData.error);
   const specText = analysisData.text || '{}';
@@ -7498,7 +7564,7 @@ ${rawInfo}
 
 Now generate the complete pixel-perfect HTML.`;
 
-  const genRes = await fetch(`${SUPABASE_URL}/functions/v1/resume-analyze`, {
+  const genRes = await enqueue(() => fetchWithRetry(`${SUPABASE_URL}/functions/v1/resume-analyze`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -7510,12 +7576,8 @@ Now generate the complete pixel-perfect HTML.`;
       imageBase64: pageImageBase64,
       systemPrompt: "You are an expert HTML developer. Return ONLY raw HTML starting with <div. No markdown, no code fences, no explanation."
     })
-  });
+  }));
 
-  if (!genRes.ok) {
-    const errText = await genRes.text().catch(() => 'Unknown');
-    throw new Error(`HTML generation failed: ${errText.slice(0, 200)}`);
-  }
   const genData = await genRes.json();
   if (genData.error) throw new Error(genData.error);
   const html = genData.text || '';
