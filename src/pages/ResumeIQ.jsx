@@ -2008,7 +2008,11 @@ function LandingScreen({ onStart, onCreateResume }) {
         </div>
       </div>
 
+      </div>
+      </ScrollReveal>
+
       {/* ── CTA Strip ── */}
+      <ScrollReveal delay={0.05}>
       <div style={{ position:'relative',zIndex:1,textAlign:'center',padding:'60px 40px', background:'rgba(255,255,255,0.40)', backdropFilter:'blur(20px)', borderTop:`1px solid rgba(195,165,110,0.25)` }}>
         <h2 style={{ fontFamily:"'Playfair Display',serif",fontSize:32,fontWeight:700,marginBottom:12,color:T.text }}>Ready to Beat the ATS?</h2>
         <p style={{ color:T.muted,marginBottom:30,fontSize:15,fontFamily:"'Jost',sans-serif",maxWidth:480,margin:'0 auto 30px' }}>Upload your PDF in seconds. Get your full intelligence report instantly — completely free.</p>
