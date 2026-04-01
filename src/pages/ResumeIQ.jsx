@@ -1812,6 +1812,29 @@ const FAQ_DATA = [
 /* ─────────────────────────────────────────────
    LANDING SCREEN
 ───────────────────────────────────────────── */
+function ScrollReveal({ children, delay = 0, direction = 'up', style = {} }) {
+  const ref = React.useRef(null);
+  const [visible, setVisible] = React.useState(false);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setVisible(true); obs.unobserve(el); } }, { threshold: 0.12 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  const transforms = { up: 'translateY(40px)', down: 'translateY(-40px)', left: 'translateX(40px)', right: 'translateX(-40px)' };
+  return (
+    <div ref={ref} style={{
+      ...style,
+      opacity: visible ? 1 : 0,
+      transform: visible ? 'translate(0,0)' : (transforms[direction] || transforms.up),
+      transition: `opacity 0.7s cubic-bezier(0.16,1,0.3,1) ${delay}s, transform 0.7s cubic-bezier(0.16,1,0.3,1) ${delay}s`,
+    }}>
+      {children}
+    </div>
+  );
+}
+
 function LandingScreen({ onStart, onCreateResume }) {
   const [openFaq, setOpenFaq] = React.useState(null);
 
