@@ -1812,6 +1812,29 @@ const FAQ_DATA = [
 /* ─────────────────────────────────────────────
    LANDING SCREEN
 ───────────────────────────────────────────── */
+function ScrollReveal({ children, delay = 0, direction = 'up', style = {} }) {
+  const ref = React.useRef(null);
+  const [visible, setVisible] = React.useState(false);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setVisible(true); obs.unobserve(el); } }, { threshold: 0.12 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  const transforms = { up: 'translateY(40px)', down: 'translateY(-40px)', left: 'translateX(40px)', right: 'translateX(-40px)' };
+  return (
+    <div ref={ref} style={{
+      ...style,
+      opacity: visible ? 1 : 0,
+      transform: visible ? 'translate(0,0)' : (transforms[direction] || transforms.up),
+      transition: `opacity 0.7s cubic-bezier(0.16,1,0.3,1) ${delay}s, transform 0.7s cubic-bezier(0.16,1,0.3,1) ${delay}s`,
+    }}>
+      {children}
+    </div>
+  );
+}
+
 function LandingScreen({ onStart, onCreateResume }) {
   const [openFaq, setOpenFaq] = React.useState(null);
 
@@ -1873,6 +1896,7 @@ function LandingScreen({ onStart, onCreateResume }) {
       </div>
 
       {/* ── How It Works ── */}
+      <ScrollReveal>
       <div style={{ position:'relative',zIndex:1,maxWidth:900,margin:'0 auto',padding:'0 40px 90px' }}>
         <h2 style={{ fontFamily:"'Playfair Display',serif",textAlign:'center',fontSize:32,fontWeight:700,marginBottom:8,color:T.text }}>How It Works</h2>
         <p style={{ textAlign:'center',color:T.muted,fontSize:14,marginBottom:50,fontFamily:"'Jost',sans-serif" }}>Three simple steps to a winning resume</p>
@@ -1892,7 +1916,10 @@ function LandingScreen({ onStart, onCreateResume }) {
         </div>
       </div>
 
+      </ScrollReveal>
+
       {/* ── Features ── */}
+      <ScrollReveal delay={0.05}>
       <div className="riq-section-pad" style={{ position:'relative',zIndex:1,maxWidth:1040,margin:'0 auto',padding:'0 40px 90px' }}>
         <h2 style={{ fontFamily:"'Playfair Display',serif",textAlign:'center',fontSize:32,fontWeight:700,marginBottom:8,color:T.text }}>Everything You Need to Get Shortlisted</h2>
         <p style={{ textAlign:'center',color:T.muted,fontSize:14,marginBottom:44,fontFamily:"'Jost',sans-serif" }}>15 intelligent modules working together to maximise your chances.</p>
@@ -1910,7 +1937,10 @@ function LandingScreen({ onStart, onCreateResume }) {
         </div>
       </div>
 
+      </ScrollReveal>
+
       {/* ── What Makes Us Different ── */}
+      <ScrollReveal delay={0.05}>
       <div style={{ position:'relative',zIndex:1,maxWidth:900,margin:'0 auto',padding:'0 40px 90px' }}>
         <h2 style={{ fontFamily:"'Playfair Display',serif",textAlign:'center',fontSize:32,fontWeight:700,marginBottom:8,color:T.text }}>Why ResumeIQ?</h2>
         <p style={{ textAlign:'center',color:T.muted,fontSize:14,marginBottom:44,fontFamily:"'Jost',sans-serif" }}>Built different from generic resume checkers</p>
@@ -1930,7 +1960,10 @@ function LandingScreen({ onStart, onCreateResume }) {
         </div>
       </div>
 
+      </ScrollReveal>
+
       {/* ── Testimonials ── */}
+      <ScrollReveal delay={0.05}>
       <div style={{ position:'relative',zIndex:1,maxWidth:1040,margin:'0 auto',padding:'0 40px 90px' }}>
         <h2 style={{ fontFamily:"'Playfair Display',serif",textAlign:'center',fontSize:32,fontWeight:700,marginBottom:8,color:T.text }}>What Users Say</h2>
         <p style={{ textAlign:'center',color:T.muted,fontSize:14,marginBottom:44,fontFamily:"'Jost',sans-serif" }}>Real results from real job seekers</p>
@@ -1948,7 +1981,11 @@ function LandingScreen({ onStart, onCreateResume }) {
         </div>
       </div>
 
+      </div>
+      </ScrollReveal>
+
       {/* ── FAQ ── */}
+      <ScrollReveal delay={0.05}>
       <div style={{ position:'relative',zIndex:1,maxWidth:720,margin:'0 auto',padding:'0 40px 90px' }}>
         <h2 style={{ fontFamily:"'Playfair Display',serif",textAlign:'center',fontSize:32,fontWeight:700,marginBottom:8,color:T.text }}>Frequently Asked Questions</h2>
         <p style={{ textAlign:'center',color:T.muted,fontSize:14,marginBottom:40,fontFamily:"'Jost',sans-serif" }}>Everything you need to know</p>
@@ -1969,7 +2006,11 @@ function LandingScreen({ onStart, onCreateResume }) {
         </div>
       </div>
 
+      </div>
+      </ScrollReveal>
+
       {/* ── CTA Strip ── */}
+      <ScrollReveal delay={0.05}>
       <div style={{ position:'relative',zIndex:1,textAlign:'center',padding:'60px 40px', background:'rgba(255,255,255,0.40)', backdropFilter:'blur(20px)', borderTop:`1px solid rgba(195,165,110,0.25)` }}>
         <h2 style={{ fontFamily:"'Playfair Display',serif",fontSize:32,fontWeight:700,marginBottom:12,color:T.text }}>Ready to Beat the ATS?</h2>
         <p style={{ color:T.muted,marginBottom:30,fontSize:15,fontFamily:"'Jost',sans-serif",maxWidth:480,margin:'0 auto 30px' }}>Upload your PDF in seconds. Get your full intelligence report instantly — completely free.</p>
@@ -1982,6 +2023,7 @@ function LandingScreen({ onStart, onCreateResume }) {
           </button>
         </div>
       </div>
+      </ScrollReveal>
 
       {/* ── Footer ── */}
       <div style={{ position:'relative',zIndex:1,textAlign:'center',padding:'28px 40px',borderTop:`1px solid rgba(195,165,110,0.2)`,background:'rgba(253,248,240,0.6)' }}>
