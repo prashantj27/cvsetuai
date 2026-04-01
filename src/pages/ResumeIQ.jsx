@@ -2025,6 +2025,7 @@ function LandingScreen({ onStart, onCreateResume }) {
           </button>
         </div>
       </div>
+      </ScrollReveal>
 
       {/* ── Footer ── */}
       <div style={{ position:'relative',zIndex:1,textAlign:'center',padding:'28px 40px',borderTop:`1px solid rgba(195,165,110,0.2)`,background:'rgba(253,248,240,0.6)' }}>
