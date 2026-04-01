@@ -1916,7 +1916,10 @@ function LandingScreen({ onStart, onCreateResume }) {
         </div>
       </div>
 
+      </ScrollReveal>
+
       {/* ── Features ── */}
+      <ScrollReveal delay={0.05}>
       <div className="riq-section-pad" style={{ position:'relative',zIndex:1,maxWidth:1040,margin:'0 auto',padding:'0 40px 90px' }}>
         <h2 style={{ fontFamily:"'Playfair Display',serif",textAlign:'center',fontSize:32,fontWeight:700,marginBottom:8,color:T.text }}>Everything You Need to Get Shortlisted</h2>
         <p style={{ textAlign:'center',color:T.muted,fontSize:14,marginBottom:44,fontFamily:"'Jost',sans-serif" }}>15 intelligent modules working together to maximise your chances.</p>
