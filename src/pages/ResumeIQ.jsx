@@ -1937,7 +1937,7 @@ function LandingScreen({ onStart, onCreateResume }) {
         </div>
       </div>
 
-      </div>
+      </ScrollReveal>
       </ScrollReveal>
 
       {/* ── What Makes Us Different ── */}
