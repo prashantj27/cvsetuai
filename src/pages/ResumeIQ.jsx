@@ -1961,7 +1961,11 @@ function LandingScreen({ onStart, onCreateResume }) {
         </div>
       </div>
 
+      </div>
+      </ScrollReveal>
+
       {/* ── Testimonials ── */}
+      <ScrollReveal delay={0.05}>
       <div style={{ position:'relative',zIndex:1,maxWidth:1040,margin:'0 auto',padding:'0 40px 90px' }}>
         <h2 style={{ fontFamily:"'Playfair Display',serif",textAlign:'center',fontSize:32,fontWeight:700,marginBottom:8,color:T.text }}>What Users Say</h2>
         <p style={{ textAlign:'center',color:T.muted,fontSize:14,marginBottom:44,fontFamily:"'Jost',sans-serif" }}>Real results from real job seekers</p>
