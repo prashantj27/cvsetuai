@@ -1938,7 +1938,6 @@ function LandingScreen({ onStart, onCreateResume }) {
       </div>
 
       </ScrollReveal>
-      </ScrollReveal>
 
       {/* ── What Makes Us Different ── */}
       <ScrollReveal delay={0.05}>
