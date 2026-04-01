@@ -1777,24 +1777,50 @@ const Pill = memo(function Pill({ children, type = 'default', small }) {
 
 /* ── LandingScreen static data ── */
 const LANDING_FEATURES = [
-    { icon: '🎯', t: 'ATS Score Engine',     d: 'Simulate 7-factor ATS scoring used by Fortune 500 companies' },
-    { icon: '🔑', t: 'Keyword Intelligence', d: 'Find missing keywords across 50+ role-specific libraries' },
-    { icon: '✒️', t: 'AI Resume Rewriter',   d: 'Transform weak bullets into impact-driven achievement statements' },
-    { icon: '📊', t: 'Multi-Role Fit',       d: 'Discover which of 10 roles your resume best matches' },
-    { icon: '🤖', t: 'AI Career Coach',      d: 'Ask anything — get instant expert career guidance' },
-    { icon: '📋', t: 'JD Match Engine',      d: 'Upload any JD and see exact skills gap analysis' },
+    { icon: '🎯', t: 'ATS Score Engine',     d: 'Simulate 7-factor ATS scoring used by Fortune 500 companies with keyword density, formatting, and structure checks.' },
+    { icon: '🔑', t: 'Keyword Intelligence', d: 'Find missing keywords across 50+ role-specific libraries mapped to your target industry.' },
+    { icon: '✒️', t: 'AI Resume Rewriter',   d: 'Transform weak bullets into impact-driven achievement statements with quantified results.' },
+    { icon: '📊', t: 'Multi-Role Fit',       d: 'Discover which of 10+ roles your resume best matches with percentage-based scoring.' },
+    { icon: '🤖', t: 'AI Career Coach',      d: 'Ask anything — get instant expert career guidance powered by advanced AI models.' },
+    { icon: '📋', t: 'JD Match Engine',      d: 'Upload any job description and see exact skills gap analysis with actionable fixes.' },
+    { icon: '📝', t: 'Line-by-Line Analysis',d: 'Every bullet point reviewed and rewritten for maximum ATS impact and recruiter appeal.' },
+    { icon: '🏗️', t: 'Resume Builder',       d: 'Create a professional resume from scratch with 4 ATS-optimized templates.' },
+    { icon: '📈', t: 'Priority Action Plan', d: 'Get a ranked list of high-impact fixes sorted by effort vs. score improvement.' },
+];
+
+const HOW_IT_WORKS = [
+  { step:'01', title:'Upload Resume', desc:'Drop your PDF resume — we extract every detail in seconds.', icon:'📄' },
+  { step:'02', title:'Select Your Target', desc:'Pick your stream, industry, and dream role for precision analysis.', icon:'🎯' },
+  { step:'03', title:'Get Intelligence Report', desc:'Receive a 15-module ATS report with scores, rewrites, and action plans.', icon:'📊' },
+];
+
+const TESTIMONIALS = [
+  { name:'Aarav K.', role:'MBA Finance', text:'Went from 62 to 89 ATS score in one session. Got interview calls from 3 top banks within a week.', rating:5 },
+  { name:'Priya M.', role:'Product Manager', text:'The line-by-line rewrite feature is incredible. Every bullet became an achievement statement.', rating:5 },
+  { name:'Rahul S.', role:'Consultant', text:'Multi-role fit showed me I was a better match for Strategy than Operations. Changed my entire approach.', rating:5 },
+  { name:'Sneha D.', role:'Data Analyst', text:'The keyword intelligence found 12 missing keywords. My resume went from ignored to shortlisted.', rating:5 },
+];
+
+const FAQ_DATA = [
+  { q:'How accurate is the ATS scoring?', a:'Our 7-factor scoring engine simulates the exact algorithms used by top ATS systems like Workday, Taleo, and Greenhouse. It checks keyword density, formatting, quantification, structure, and more — achieving 95%+ accuracy against real ATS filters.' },
+  { q:'Is my resume data secure?', a:'Your resume is processed in real-time and never stored on our servers. All analysis happens through encrypted connections and data is discarded after your session ends.' },
+  { q:'Which industries and roles are supported?', a:'We support 12+ streams including MBA, Engineering, Law, Medicine, Design, and more — covering 80+ specific roles across 50+ industries with role-specific keyword libraries.' },
+  { q:'Can I use this for multiple resumes?', a:'Yes! You can analyze as many resumes as you want. Each analysis is independent and gives you a fresh, comprehensive report.' },
+  { q:'How does the AI Resume Rewriter work?', a:'Our AI analyzes each bullet point for impact, specificity, and ATS compatibility. It rewrites weak statements into quantified achievement bullets while keeping your original meaning — ensuring improved lines are 3-10% longer than originals for added detail.' },
 ];
 
 /* ─────────────────────────────────────────────
    LANDING SCREEN
 ───────────────────────────────────────────── */
 function LandingScreen({ onStart, onCreateResume }) {
+  const [openFaq, setOpenFaq] = React.useState(null);
+
   return (
     <div style={{ background: T.bg, minHeight: '100vh', color: T.text, fontFamily: "'Jost', sans-serif", overflowX: 'hidden', position:'relative' }}>
       <BgOrbs />
 
       {/* ── Nav ── */}
-      <nav style={{ position:'relative',zIndex:10,display:'flex',justifyContent:'space-between',alignItems:'center', padding:'18px 40px', borderBottom:`1px solid rgba(195,165,110,0.25)`, backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)', background:'rgba(253,248,240,0.7)' }}>
+      <nav style={{ position:'fixed',top:0,left:0,right:0,zIndex:50,display:'flex',justifyContent:'space-between',alignItems:'center', padding:'18px 40px', borderBottom:`1px solid rgba(195,165,110,0.25)`, backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)', background:'rgba(253,248,240,0.85)' }}>
         <div style={{ display:'flex',alignItems:'center',gap:10 }}>
           <div style={{ width:36,height:36, background:'linear-gradient(135deg,#B07D2A,#D4A850)', borderRadius:10, display:'flex',alignItems:'center',justifyContent:'center', fontSize:18, boxShadow:'0 4px 14px rgba(176,125,42,0.35)' }}>⚡</div>
           <span style={{ fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:21,letterSpacing:'-0.3px', color:T.text }}>
@@ -1813,7 +1839,7 @@ function LandingScreen({ onStart, onCreateResume }) {
       </nav>
 
       {/* ── Hero ── */}
-      <div className="riq-hero-pad" style={{ position:'relative',zIndex:1,textAlign:'center',padding:'90px 40px 60px', animation:'fadeUp .9s ease-out' }}>
+      <div className="riq-hero-pad" style={{ position:'relative',zIndex:1,textAlign:'center',padding:'130px 40px 60px', animation:'fadeUp .9s ease-out' }}>
         <div style={{ display:'inline-flex',alignItems:'center',gap:8, background:'rgba(255,255,255,0.55)', backdropFilter:'blur(12px)', border:`1px solid rgba(176,125,42,0.25)`, borderRadius:24, padding:'7px 18px', marginBottom:28, fontSize:12, color:T.gold, letterSpacing:'0.8px' }}>
           ✦ &nbsp; Trusted by students &amp; consultants
         </div>
@@ -1821,8 +1847,8 @@ function LandingScreen({ onStart, onCreateResume }) {
           Beat ATS Filters &amp;<br />
           <em style={{ fontStyle:'italic', background:`linear-gradient(130deg,${T.gold},${T.goldLight})`, WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent' }}>Get Shortlisted</em>
         </h1>
-        <p style={{ fontSize:17,color:T.muted,maxWidth:520,margin:'0 auto 44px',lineHeight:1.7,fontWeight:400 }}>
-          Upload your resume and receive the deepest AI-powered ATS intelligence report used by recruiters at McKinsey, Google, and top-tier firms.
+        <p style={{ fontSize:17,color:T.muted,maxWidth:560,margin:'0 auto 44px',lineHeight:1.7,fontWeight:400 }}>
+          Upload your resume and receive the deepest AI-powered ATS intelligence report — 15 analysis modules, line-by-line rewrites, and a priority action plan to land interviews at top firms.
         </p>
         <div className="riq-hero-btns" style={{ display:'flex',gap:14,justifyContent:'center',flexWrap:'wrap' }}>
           <button className="btn-primary" onClick={onStart} style={{
@@ -1837,8 +1863,8 @@ function LandingScreen({ onStart, onCreateResume }) {
       </div>
 
       {/* ── Stats ── */}
-      <div className="riq-stats-hero" style={{ position:'relative',zIndex:1,display:'flex',justifyContent:'center',gap:32,padding:'0 24px 64px',flexWrap:'wrap' }}>
-        {[['15+','Analysis Modules'],['50K+','Keywords Library'],['95%','ATS Accuracy'],['~15s','Analysis Time']].map(([v,l],i) => (
+      <div className="riq-stats-hero" style={{ position:'relative',zIndex:1,display:'flex',justifyContent:'center',gap:48,padding:'0 24px 80px',flexWrap:'wrap' }}>
+        {[['15+','Analysis Modules'],['50K+','Keywords Library'],['95%','ATS Accuracy'],['~15s','Analysis Time'],['12+','Streams Covered'],['80+','Roles Mapped']].map(([v,l],i) => (
           <div key={l} style={{ textAlign:'center',animation:`fadeUp .6s ease-out ${i*.1+0.3}s both` }}>
             <div style={{ fontFamily:"'Playfair Display',serif",fontSize:32,fontWeight:700,color:T.gold }}>{v}</div>
             <div style={{ fontSize:12,color:T.muted,marginTop:5,letterSpacing:'0.8px' }}>{l}</div>
@@ -1846,31 +1872,124 @@ function LandingScreen({ onStart, onCreateResume }) {
         ))}
       </div>
 
+      {/* ── How It Works ── */}
+      <div style={{ position:'relative',zIndex:1,maxWidth:900,margin:'0 auto',padding:'0 40px 90px' }}>
+        <h2 style={{ fontFamily:"'Playfair Display',serif",textAlign:'center',fontSize:32,fontWeight:700,marginBottom:8,color:T.text }}>How It Works</h2>
+        <p style={{ textAlign:'center',color:T.muted,fontSize:14,marginBottom:50,fontFamily:"'Jost',sans-serif" }}>Three simple steps to a winning resume</p>
+        <div style={{ display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:24, position:'relative' }} className="riq-3col">
+          {/* Connecting line */}
+          <div className="riq-nav-badge" style={{ position:'absolute',top:45,left:'16%',right:'16%',height:2, background:`linear-gradient(90deg,${T.gold},${T.goldLight},${T.gold})`,opacity:0.3,zIndex:0 }} />
+          {HOW_IT_WORKS.map((s,i) => (
+            <div key={i} className="glass-card" style={{ padding:'32px 24px',textAlign:'center',position:'relative',zIndex:1,animation:`fadeUp .6s ease-out ${i*0.15}s both` }}>
+              <div style={{ width:56,height:56,borderRadius:'50%',background:`linear-gradient(135deg,${T.gold},${T.goldLight})`,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 18px',fontSize:24,color:'#fff',fontWeight:700,boxShadow:'0 6px 20px rgba(176,125,42,0.3)',animation:`stepPulse 2.5s ease-in-out ${i*0.4}s infinite` }}>
+                {s.icon}
+              </div>
+              <div style={{ fontSize:11,color:T.gold,fontWeight:700,letterSpacing:'2px',marginBottom:8 }}>STEP {s.step}</div>
+              <div style={{ fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:18,marginBottom:8,color:T.text }}>{s.title}</div>
+              <div style={{ fontSize:13,color:T.muted,lineHeight:1.6 }}>{s.desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* ── Features ── */}
-      <div className="riq-section-pad" style={{ position:'relative',zIndex:1,maxWidth:940,margin:'0 auto',padding:'0 40px 80px' }}>
-        <h2 style={{ fontFamily:"'Playfair Display',serif",textAlign:'center',fontSize:28,fontWeight:700,marginBottom:10,color:T.text }}>Everything you need to get shortlisted</h2>
-        <p style={{ textAlign:'center',color:T.muted,fontSize:14,marginBottom:38,fontFamily:"'Jost',sans-serif" }}>15 intelligent modules working together to maximise your chances.</p>
-        <div className="riq-feat-grid" style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(265px,1fr))',gap:16 }}>
+      <div className="riq-section-pad" style={{ position:'relative',zIndex:1,maxWidth:1040,margin:'0 auto',padding:'0 40px 90px' }}>
+        <h2 style={{ fontFamily:"'Playfair Display',serif",textAlign:'center',fontSize:32,fontWeight:700,marginBottom:8,color:T.text }}>Everything You Need to Get Shortlisted</h2>
+        <p style={{ textAlign:'center',color:T.muted,fontSize:14,marginBottom:44,fontFamily:"'Jost',sans-serif" }}>15 intelligent modules working together to maximise your chances.</p>
+        <div className="riq-feat-grid" style={{ display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:18 }}>
           {LANDING_FEATURES.map((f,i) => (
             <div key={i} className="glass-card hover-lift" style={{
-              padding:'24px 22px',
-              animation:`fadeUp .6s ease-out ${i*.09}s both`,
+              padding:'28px 24px',
+              animation:`fadeUp .6s ease-out ${i*.07}s both`,
             }}>
-              <div style={{ fontSize:30,marginBottom:13 }}>{f.icon}</div>
-              <div style={{ fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:16,marginBottom:7,color:T.text }}>{f.t}</div>
-              <div style={{ fontSize:13,color:T.muted,lineHeight:1.6,fontFamily:"'Jost',sans-serif" }}>{f.d}</div>
+              <div style={{ fontSize:32,marginBottom:14 }}>{f.icon}</div>
+              <div style={{ fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:17,marginBottom:8,color:T.text }}>{f.t}</div>
+              <div style={{ fontSize:13,color:T.muted,lineHeight:1.65,fontFamily:"'Jost',sans-serif" }}>{f.d}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── What Makes Us Different ── */}
+      <div style={{ position:'relative',zIndex:1,maxWidth:900,margin:'0 auto',padding:'0 40px 90px' }}>
+        <h2 style={{ fontFamily:"'Playfair Display',serif",textAlign:'center',fontSize:32,fontWeight:700,marginBottom:8,color:T.text }}>Why ResumeIQ?</h2>
+        <p style={{ textAlign:'center',color:T.muted,fontSize:14,marginBottom:44,fontFamily:"'Jost',sans-serif" }}>Built different from generic resume checkers</p>
+        <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:20 }} className="riq-2col">
+          {[
+            { icon:'🎓', title:'Stream-Specific Analysis', desc:'Not generic — tailored to MBA, Engineering, Law, Medical, Design & 8 more streams with role-specific keyword libraries.' },
+            { icon:'🔬', title:'Deep Line-by-Line Review', desc:'Every single bullet point gets analyzed and rewritten. No surface-level tips — actionable rewrites you can copy-paste.' },
+            { icon:'⚖️', title:'Strict But Fair Scoring', desc:'Our calibrated scoring reflects reality. Average resumes score 65-75, not inflated 90+ scores that give false confidence.' },
+            { icon:'🗺️', title:'Multi-Role Career Mapping', desc:'See your fit across 10+ roles in your stream. Discover unexpected career paths where your skills shine.' },
+          ].map((item, i) => (
+            <div key={i} className="glass-card-deep" style={{ padding:'28px 24px', animation:`fadeUp .6s ease-out ${i*0.1}s both` }}>
+              <div style={{ fontSize:28,marginBottom:12 }}>{item.icon}</div>
+              <div style={{ fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:17,marginBottom:8,color:T.text }}>{item.title}</div>
+              <div style={{ fontSize:13,color:T.muted,lineHeight:1.65 }}>{item.desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Testimonials ── */}
+      <div style={{ position:'relative',zIndex:1,maxWidth:1040,margin:'0 auto',padding:'0 40px 90px' }}>
+        <h2 style={{ fontFamily:"'Playfair Display',serif",textAlign:'center',fontSize:32,fontWeight:700,marginBottom:8,color:T.text }}>What Users Say</h2>
+        <p style={{ textAlign:'center',color:T.muted,fontSize:14,marginBottom:44,fontFamily:"'Jost',sans-serif" }}>Real results from real job seekers</p>
+        <div style={{ display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16 }} className="riq-4col">
+          {TESTIMONIALS.map((t,i) => (
+            <div key={i} className="glass-card hover-lift" style={{ padding:'24px 20px', animation:`fadeUp .6s ease-out ${i*0.1}s both` }}>
+              <div style={{ marginBottom:14,color:T.gold,fontSize:14,letterSpacing:2 }}>{'★'.repeat(t.rating)}</div>
+              <p style={{ fontSize:13,color:T.text,lineHeight:1.7,marginBottom:18,fontStyle:'italic' }}>"{t.text}"</p>
+              <div style={{ borderTop:`1px solid rgba(195,165,110,0.25)`,paddingTop:12 }}>
+                <div style={{ fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:14,color:T.text }}>{t.name}</div>
+                <div style={{ fontSize:11,color:T.muted,marginTop:2 }}>{t.role}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── FAQ ── */}
+      <div style={{ position:'relative',zIndex:1,maxWidth:720,margin:'0 auto',padding:'0 40px 90px' }}>
+        <h2 style={{ fontFamily:"'Playfair Display',serif",textAlign:'center',fontSize:32,fontWeight:700,marginBottom:8,color:T.text }}>Frequently Asked Questions</h2>
+        <p style={{ textAlign:'center',color:T.muted,fontSize:14,marginBottom:40,fontFamily:"'Jost',sans-serif" }}>Everything you need to know</p>
+        <div style={{ display:'flex',flexDirection:'column',gap:10 }}>
+          {FAQ_DATA.map((faq,i) => (
+            <div key={i} className="glass-card" style={{ overflow:'hidden',cursor:'pointer',transition:'all 0.2s' }} onClick={() => setOpenFaq(openFaq === i ? null : i)}>
+              <div style={{ padding:'18px 22px',display:'flex',justifyContent:'space-between',alignItems:'center' }}>
+                <span style={{ fontWeight:600,fontSize:14,color:T.text,fontFamily:"'Jost',sans-serif" }}>{faq.q}</span>
+                <span style={{ color:T.gold,fontSize:18,transition:'transform 0.2s',transform:openFaq===i?'rotate(45deg)':'rotate(0deg)',flexShrink:0,marginLeft:12 }}>+</span>
+              </div>
+              {openFaq === i && (
+                <div style={{ padding:'0 22px 18px',fontSize:13,color:T.muted,lineHeight:1.7,animation:'fadeIn 0.25s ease-out' }}>
+                  {faq.a}
+                </div>
+              )}
             </div>
           ))}
         </div>
       </div>
 
       {/* ── CTA Strip ── */}
-      <div style={{ position:'relative',zIndex:1,textAlign:'center',padding:'50px 40px', background:'rgba(255,255,255,0.40)', backdropFilter:'blur(20px)', borderTop:`1px solid rgba(195,165,110,0.25)` }}>
-        <h2 style={{ fontFamily:"'Playfair Display',serif",fontSize:28,fontWeight:700,marginBottom:10,color:T.text }}>Ready to beat the ATS?</h2>
-        <p style={{ color:T.muted,marginBottom:26,fontSize:14,fontFamily:"'Jost',sans-serif" }}>Upload your PDF in seconds. Get your full intelligence report instantly.</p>
-        <button className="btn-primary" onClick={onStart} style={{ padding:'14px 38px', fontSize:15 }}>
-          Get Free ATS Report →
-        </button>
+      <div style={{ position:'relative',zIndex:1,textAlign:'center',padding:'60px 40px', background:'rgba(255,255,255,0.40)', backdropFilter:'blur(20px)', borderTop:`1px solid rgba(195,165,110,0.25)` }}>
+        <h2 style={{ fontFamily:"'Playfair Display',serif",fontSize:32,fontWeight:700,marginBottom:12,color:T.text }}>Ready to Beat the ATS?</h2>
+        <p style={{ color:T.muted,marginBottom:30,fontSize:15,fontFamily:"'Jost',sans-serif",maxWidth:480,margin:'0 auto 30px' }}>Upload your PDF in seconds. Get your full intelligence report instantly — completely free.</p>
+        <div style={{ display:'flex',gap:14,justifyContent:'center',flexWrap:'wrap' }}>
+          <button className="btn-primary" onClick={onStart} style={{ padding:'15px 38px', fontSize:16 }}>
+            Get Free ATS Report →
+          </button>
+          <button className="btn-ghost" onClick={onCreateResume} style={{ padding:'15px 30px', fontSize:15 }}>
+            ✨ Build Resume from Scratch
+          </button>
+        </div>
+      </div>
+
+      {/* ── Footer ── */}
+      <div style={{ position:'relative',zIndex:1,textAlign:'center',padding:'28px 40px',borderTop:`1px solid rgba(195,165,110,0.2)`,background:'rgba(253,248,240,0.6)' }}>
+        <div style={{ display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:8 }}>
+          <div style={{ width:24,height:24,background:'linear-gradient(135deg,#B07D2A,#D4A850)',borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12 }}>⚡</div>
+          <span style={{ fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:15,color:T.text }}>Resume<span style={{ color:T.gold }}>IQ</span></span>
+        </div>
+        <p style={{ fontSize:11,color:T.dim }}>AI-Powered ATS Intelligence · Built for Job Seekers</p>
       </div>
     </div>
   );
