@@ -1983,7 +1983,11 @@ function LandingScreen({ onStart, onCreateResume }) {
         </div>
       </div>
 
+      </div>
+      </ScrollReveal>
+
       {/* ── FAQ ── */}
+      <ScrollReveal delay={0.05}>
       <div style={{ position:'relative',zIndex:1,maxWidth:720,margin:'0 auto',padding:'0 40px 90px' }}>
         <h2 style={{ fontFamily:"'Playfair Display',serif",textAlign:'center',fontSize:32,fontWeight:700,marginBottom:8,color:T.text }}>Frequently Asked Questions</h2>
         <p style={{ textAlign:'center',color:T.muted,fontSize:14,marginBottom:40,fontFamily:"'Jost',sans-serif" }}>Everything you need to know</p>
