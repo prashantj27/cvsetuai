@@ -1896,6 +1896,7 @@ function LandingScreen({ onStart, onCreateResume }) {
       </div>
 
       {/* ── How It Works ── */}
+      <ScrollReveal>
       <div style={{ position:'relative',zIndex:1,maxWidth:900,margin:'0 auto',padding:'0 40px 90px' }}>
         <h2 style={{ fontFamily:"'Playfair Display',serif",textAlign:'center',fontSize:32,fontWeight:700,marginBottom:8,color:T.text }}>How It Works</h2>
         <p style={{ textAlign:'center',color:T.muted,fontSize:14,marginBottom:50,fontFamily:"'Jost',sans-serif" }}>Three simple steps to a winning resume</p>
