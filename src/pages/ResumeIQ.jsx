@@ -1980,8 +1980,6 @@ function LandingScreen({ onStart, onCreateResume }) {
           ))}
         </div>
       </div>
-
-      </div>
       </ScrollReveal>
 
       {/* ── FAQ ── */}
