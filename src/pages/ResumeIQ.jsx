@@ -2003,8 +2003,6 @@ function LandingScreen({ onStart, onCreateResume }) {
           ))}
         </div>
       </div>
-
-      </div>
       </ScrollReveal>
 
       {/* ── CTA Strip ── */}
