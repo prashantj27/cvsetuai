@@ -2103,8 +2103,7 @@ function UploadScreen({ onBack, onAnalyze }) {
       <div style={{ position:'relative',zIndex:10,display:'flex',alignItems:'center',gap:12,padding:'16px 30px',borderBottom:`1px solid rgba(195,165,110,0.25)`,background:'rgba(253,248,240,0.75)',backdropFilter:'blur(20px)' }}>
         <button className="btn-ghost" onClick={onBack} style={{ padding:'7px 14px', fontSize:13 }}>← Back</button>
         <div style={{ display:'flex',alignItems:'center',gap:9,marginLeft:6 }}>
-          <div style={{ width:30,height:30,background:'linear-gradient(135deg,#B07D2A,#D4A850)',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,boxShadow:'0 3px 10px rgba(176,125,42,0.3)' }}>⚡</div>
-          <span style={{ fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:18 }}>Resume<span style={{color:T.gold}}>IQ</span></span>
+          <img src={cvsetuaiLogo} alt="CVsetuAI" style={{ height:32, objectFit:'contain' }} />
         </div>
       </div>
 
