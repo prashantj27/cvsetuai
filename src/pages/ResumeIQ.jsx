@@ -2648,10 +2648,12 @@ function LineItemCard({ item }) {
   function validateImproved(raw) {
     const t = (raw || '').trim();
     if (!t) return null;
-    if (t === item.original) return null; // must not be identical
+    const normOrig = item.original.replace(/\s+/g, ' ').trim().toLowerCase();
+    const normImp  = t.replace(/\s+/g, ' ').trim().toLowerCase();
+    if (normImp === normOrig) return null; // must not be identical
     const tLen = effectiveLength(t);
-    if (tLen < minChars) return null; // less than 3% increase
-    if (tLen > maxChars) return null; // more than 10% increase
+    if (tLen < minChars) return null;
+    if (tLen > maxChars) return null;
     return t;
   }
 
@@ -2659,10 +2661,11 @@ function LineItemCard({ item }) {
   const [improvedState, setImprovedState] = useState(validatedInitial);
   const [reasonState,   setReasonState]   = useState(item.reason || '');
   const needsAutoRegen = useRef(!validatedInitial);
+  const regenAttempts  = useRef(0);
 
-  // Auto-regenerate if initial improved was invalid/identical
+  // Auto-regenerate if initial improved was invalid/identical — retry up to 3 times
   useEffect(() => {
-    if (needsAutoRegen.current) {
+    if (needsAutoRegen.current && regenAttempts.current < 3) {
       needsAutoRegen.current = false;
       regenerate(0);
     }
