@@ -2762,7 +2762,9 @@ QUALITY RULES:
     .trim()
     .replace(/^[,;]+\s*/, '');
 
-  const displayText = improvedState || item.original;
+  const isIdentical = !improvedState || (improvedState.replace(/\s+/g,' ').trim().toLowerCase() === item.original.replace(/\s+/g,' ').trim().toLowerCase());
+  const displayText = generating ? '⏳ Generating improved version…' : (improvedState || '⚠️ Regenerating — improved version pending…');
+  const displayEff  = effectiveLength(improvedState || item.original);
   const displayEff  = effectiveLength(displayText);
   const tier        = getTier(displayEff);
 
