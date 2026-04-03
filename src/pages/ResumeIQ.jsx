@@ -1095,10 +1095,11 @@ Your "improved" text MUST be between ceil(N × 1.03) and ceil(N × 1.10) charact
   MAXIMUM: ceil(N × 1.10) — at most 10% longer than original. NEVER exceed.
 
 RULES:
-• "improved" MUST NOT be identical to "original" — every line must be genuinely rewritten.
+• "improved" MUST NOT be identical or near-identical to "original" — every line must be GENUINELY rewritten with different phrasing, not just a word insertion.
+• Use a DIFFERENT opening action verb than the original. Restructure the sentence substantially.
 • NEVER truncate mid-sentence. A complete sentence within the window is required.
 • "improved" must always be a grammatically complete thought.
-• If you cannot fit a better version within the window, still rewrite with different wording.
+• If you cannot fit a better version within the window, still rewrite with completely different wording and structure.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 COVERAGE — MANDATORY COMPLETE PASS:
@@ -1127,16 +1128,20 @@ Return ONLY this JSON:
 
 
 /* ── repairLine: module-level — validates improved line length constraints (3%-10%) ── */
+/* Returns the valid improved text, or null if invalid (so caller can trigger regen) */
 function repairLine(original, improved) {
   const origLen = effectiveLength(original);
   const minLen  = Math.ceil(origLen * 1.03);
   const maxLen  = Math.ceil(origLen * 1.10);
   const t = (improved || '').trim();
-  if (!t) return original;
-  if (t === original) return original; // must not be identical
+  if (!t) return null;
+  // Normalize whitespace for comparison
+  const normOrig = original.replace(/\s+/g, ' ').trim().toLowerCase();
+  const normImp  = t.replace(/\s+/g, ' ').trim().toLowerCase();
+  if (normImp === normOrig) return null; // must not be identical
   const tLen = effectiveLength(t);
-  if (tLen < minLen) return original; // too short — less than 3% increase
-  if (tLen > maxLen) return original; // too long — more than 10% increase
+  if (tLen < minLen) return null; // too short
+  if (tLen > maxLen) return null; // too long
   return t;
 }
 
@@ -1269,7 +1274,8 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
   const repairedLines = (resultB.lineByLineAnalysis || []).map(item => {
     if (!item.original || !item.improved) return item;
     const repairedImproved = repairLine(item.original, item.improved);
-    return { ...item, improved: repairedImproved };
+    // If null, mark as needing regen — the LineCard auto-regen will handle it
+    return { ...item, improved: repairedImproved || null };
   });
 
   // ── JS-side Multi-Role ATS score — same 7-dimension formula as overall ATS ─
@@ -2643,10 +2649,12 @@ function LineItemCard({ item }) {
   function validateImproved(raw) {
     const t = (raw || '').trim();
     if (!t) return null;
-    if (t === item.original) return null; // must not be identical
+    const normOrig = item.original.replace(/\s+/g, ' ').trim().toLowerCase();
+    const normImp  = t.replace(/\s+/g, ' ').trim().toLowerCase();
+    if (normImp === normOrig) return null; // must not be identical
     const tLen = effectiveLength(t);
-    if (tLen < minChars) return null; // less than 3% increase
-    if (tLen > maxChars) return null; // more than 10% increase
+    if (tLen < minChars) return null;
+    if (tLen > maxChars) return null;
     return t;
   }
 
@@ -2654,10 +2662,11 @@ function LineItemCard({ item }) {
   const [improvedState, setImprovedState] = useState(validatedInitial);
   const [reasonState,   setReasonState]   = useState(item.reason || '');
   const needsAutoRegen = useRef(!validatedInitial);
+  const regenAttempts  = useRef(0);
 
-  // Auto-regenerate if initial improved was invalid/identical
+  // Auto-regenerate if initial improved was invalid/identical — retry up to 3 times
   useEffect(() => {
-    if (needsAutoRegen.current) {
+    if (needsAutoRegen.current && regenAttempts.current < 3) {
       needsAutoRegen.current = false;
       regenerate(0);
     }
@@ -2685,41 +2694,52 @@ function LineItemCard({ item }) {
     };
   }
 
-  async function regenerate(bias = charBias) {
+  async function regenerate(bias = charBias, attempt = 0) {
     if (generating) return;
     setGenerating(true);
     const { min, max, targetMax } = getTargetWindow(bias);
-    const pct = Math.round(targetMax * 100);
-    try {
-      const result = await callClaude(
-        `You are a world-class resume writer. Rewrite this resume line to be exceptional.
+    const maxRetries = 3;
+    let lastCandidate = null;
+    let lastReason = '';
+
+    for (let i = attempt; i < maxRetries; i++) {
+      try {
+        const result = await callClaude(
+          `You are a world-class resume writer. Rewrite this resume line to be SUBSTANTIALLY BETTER — not cosmetically similar.
 Return ONLY valid JSON: {"improved":"...","reason":"..."}
 
 Section: ${item.section || 'Resume'}
 Original (${origEffLen} chars): "${item.original}"
 
-CHARACTER TARGET: Write a rewrite that is between ${min} and ${max} characters (${Math.round((min/origEffLen-1)*100)}%–${Math.round((max/origEffLen-1)*100)}% longer than original).
+CRITICAL RULE: Your rewrite MUST be MEANINGFULLY DIFFERENT from the original. 
+- Use a DIFFERENT opening action verb than the original uses.
+- Restructure the sentence — don't just insert/append a word or two.
+- Add quantified impact, strategic framing, or specificity NOT in the original.
+- If the original says "Executed competitor analysis", rewrite as something like "Spearheaded comprehensive competitive benchmarking" — genuinely different phrasing.
+
+CHARACTER TARGET: Between ${min} and ${max} characters (${Math.round((min/origEffLen-1)*100)}%–${Math.round((max/origEffLen-1)*100)}% longer than original).
 Every dash variant (-, –, —, ‒, −) = 1 character.
-MINIMUM: ${min} chars — at least 3% longer than original.
-MAXIMUM: ${max} chars — at most 10% longer than original.
-The improved text MUST NOT be identical to the original.
-NEVER truncate mid-word, mid-sentence, or produce a fragment.
-"improved" must end at a complete grammatical thought.
+MINIMUM: ${min} chars. MAXIMUM: ${max} chars.
+NEVER truncate mid-word or mid-sentence. Must be a complete grammatical thought.
 
 QUALITY RULES:
-• Start with a strong past-tense action verb (Spearheaded, Drove, Delivered, Orchestrated…)
+• Start with a strong past-tense action verb DIFFERENT from the original's first verb
 • Embed specificity from the original — real numbers, tools, outcomes. Zero fabrication.
-• "reason" = one sentence explaining what was strategically improved — no mention of character counts`, 800
-      );
-      const candidate = validateImproved(result.improved);
-      const newReason = (result.reason || '').trim();
-      if (candidate) {
-        setImprovedState(candidate);
-        setReasonState(newReason || 'Rewritten with stronger action verb, specificity, and measurable impact.');
+• "reason" = one sentence explaining what was strategically improved — no mention of character counts
+• If you return text identical to the original, the system will REJECT it and retry — so always rewrite meaningfully.`, 800
+        );
+        lastCandidate = validateImproved(result.improved);
+        lastReason = (result.reason || '').trim();
+        if (lastCandidate) {
+          setImprovedState(lastCandidate);
+          setReasonState(lastReason || 'Rewritten with stronger action verb, specificity, and measurable impact.');
+          break;
+        }
+      } catch {
+        // continue to next retry
       }
-    } catch {
-      // silently ignore
     }
+    regenAttempts.current++;
     setGenerating(false);
   }
 
@@ -2742,7 +2762,9 @@ QUALITY RULES:
     .trim()
     .replace(/^[,;]+\s*/, '');
 
-  const displayText = improvedState || item.original;
+  const isIdentical = !improvedState || (improvedState.replace(/\s+/g,' ').trim().toLowerCase() === item.original.replace(/\s+/g,' ').trim().toLowerCase());
+  const displayText = generating ? '⏳ Generating improved version…' : (improvedState || '⚠️ Regenerating — improved version pending…');
+  const displayEff  = effectiveLength(improvedState || item.original);
   const displayEff  = effectiveLength(displayText);
   const tier        = getTier(displayEff);
 
