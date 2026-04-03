@@ -1095,10 +1095,11 @@ Your "improved" text MUST be between ceil(N × 1.03) and ceil(N × 1.10) charact
   MAXIMUM: ceil(N × 1.10) — at most 10% longer than original. NEVER exceed.
 
 RULES:
-• "improved" MUST NOT be identical to "original" — every line must be genuinely rewritten.
+• "improved" MUST NOT be identical or near-identical to "original" — every line must be GENUINELY rewritten with different phrasing, not just a word insertion.
+• Use a DIFFERENT opening action verb than the original. Restructure the sentence substantially.
 • NEVER truncate mid-sentence. A complete sentence within the window is required.
 • "improved" must always be a grammatically complete thought.
-• If you cannot fit a better version within the window, still rewrite with different wording.
+• If you cannot fit a better version within the window, still rewrite with completely different wording and structure.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 COVERAGE — MANDATORY COMPLETE PASS:
