@@ -1846,10 +1846,7 @@ function LandingScreen({ onStart, onCreateResume }) {
       {/* ── Nav ── */}
       <nav style={{ position:'fixed',top:0,left:0,right:0,zIndex:50,display:'flex',justifyContent:'space-between',alignItems:'center', padding:'18px 40px', borderBottom:`1px solid rgba(195,165,110,0.25)`, backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)', background:'rgba(253,248,240,0.85)' }}>
         <div style={{ display:'flex',alignItems:'center',gap:10 }}>
-          <div style={{ width:36,height:36, background:'linear-gradient(135deg,#B07D2A,#D4A850)', borderRadius:10, display:'flex',alignItems:'center',justifyContent:'center', fontSize:18, boxShadow:'0 4px 14px rgba(176,125,42,0.35)' }}>⚡</div>
-          <span style={{ fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:21,letterSpacing:'-0.3px', color:T.text }}>
-            Resume<span style={{ color:T.gold }}>IQ</span>
-          </span>
+          <img src={cvsetuaiLogo} alt="CVsetuAI" style={{ height:40, objectFit:'contain' }} />
         </div>
         <div className="riq-nav-right" style={{ display:'flex',gap:8,alignItems:'center' }}>
           <span className="riq-nav-badge" style={{ fontSize:12,color:T.muted,padding:'5px 14px', background:'rgba(255,255,255,0.55)', backdropFilter:'blur(10px)', border:`1px solid rgba(195,165,110,0.3)`,borderRadius:20, letterSpacing:'0.8px', fontFamily:"'Jost',sans-serif" }}>AI · FREE · INSTANT</span>
