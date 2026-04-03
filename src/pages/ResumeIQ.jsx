@@ -1127,16 +1127,20 @@ Return ONLY this JSON:
 
 
 /* ── repairLine: module-level — validates improved line length constraints (3%-10%) ── */
+/* Returns the valid improved text, or null if invalid (so caller can trigger regen) */
 function repairLine(original, improved) {
   const origLen = effectiveLength(original);
   const minLen  = Math.ceil(origLen * 1.03);
   const maxLen  = Math.ceil(origLen * 1.10);
   const t = (improved || '').trim();
-  if (!t) return original;
-  if (t === original) return original; // must not be identical
+  if (!t) return null;
+  // Normalize whitespace for comparison
+  const normOrig = original.replace(/\s+/g, ' ').trim().toLowerCase();
+  const normImp  = t.replace(/\s+/g, ' ').trim().toLowerCase();
+  if (normImp === normOrig) return null; // must not be identical
   const tLen = effectiveLength(t);
-  if (tLen < minLen) return original; // too short — less than 3% increase
-  if (tLen > maxLen) return original; // too long — more than 10% increase
+  if (tLen < minLen) return null; // too short
+  if (tLen > maxLen) return null; // too long
   return t;
 }
 
