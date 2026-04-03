@@ -2022,8 +2022,7 @@ function LandingScreen({ onStart, onCreateResume }) {
       {/* ── Footer ── */}
       <div style={{ position:'relative',zIndex:1,textAlign:'center',padding:'28px 40px',borderTop:`1px solid rgba(195,165,110,0.2)`,background:'rgba(253,248,240,0.6)' }}>
         <div style={{ display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:8 }}>
-          <div style={{ width:24,height:24,background:'linear-gradient(135deg,#B07D2A,#D4A850)',borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12 }}>⚡</div>
-          <span style={{ fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:15,color:T.text }}>Resume<span style={{ color:T.gold }}>IQ</span></span>
+          <img src={cvsetuaiLogo} alt="CVsetuAI" style={{ height:30, objectFit:'contain' }} />
         </div>
         <p style={{ fontSize:11,color:T.dim }}>AI-Powered ATS Intelligence · Built for Job Seekers</p>
       </div>
