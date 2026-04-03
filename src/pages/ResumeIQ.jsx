@@ -3756,8 +3756,7 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
       <div className="riq-top-bar" style={{ position:'fixed',top:0,left:0,right:0,zIndex:200,display:'flex',alignItems:'center',gap:10,padding:'12px 22px',borderBottom:`1px solid rgba(195,165,110,0.25)`,background:'rgba(253,248,240,0.92)',backdropFilter:'blur(24px)',WebkitBackdropFilter:'blur(24px)' }}>
         <button className="btn-ghost" onClick={onBack} style={{ padding:'6px 12px', fontSize:12 }}>← Back</button>
         <div style={{ display:'flex',alignItems:'center',gap:8,marginLeft:4 }}>
-          <div style={{ width:26,height:26,background:'linear-gradient(135deg,#B07D2A,#D4A850)',borderRadius:7,display:'flex',alignItems:'center',justifyContent:'center',fontSize:13 }}>⚡</div>
-          <span style={{ fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:17 }}>Resume<span style={{color:T.gold}}>IQ</span></span>
+          <img src={cvsetuaiLogo} alt="CVsetuAI" style={{ height:28, objectFit:'contain' }} />
         </div>
         <div className="riq-cand-info" style={{ flex:1,marginLeft:10 }}>
           <div style={{ fontWeight:600,fontSize:14,color:T.text }}>{results.candidate?.name || 'Resume Analysis'}</div>
