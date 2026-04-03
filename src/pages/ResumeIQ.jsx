@@ -1273,7 +1273,8 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
   const repairedLines = (resultB.lineByLineAnalysis || []).map(item => {
     if (!item.original || !item.improved) return item;
     const repairedImproved = repairLine(item.original, item.improved);
-    return { ...item, improved: repairedImproved };
+    // If null, mark as needing regen — the LineCard auto-regen will handle it
+    return { ...item, improved: repairedImproved || null };
   });
 
   // ── JS-side Multi-Role ATS score — same 7-dimension formula as overall ATS ─
