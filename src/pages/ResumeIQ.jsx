@@ -2693,41 +2693,52 @@ function LineItemCard({ item }) {
     };
   }
 
-  async function regenerate(bias = charBias) {
+  async function regenerate(bias = charBias, attempt = 0) {
     if (generating) return;
     setGenerating(true);
     const { min, max, targetMax } = getTargetWindow(bias);
-    const pct = Math.round(targetMax * 100);
-    try {
-      const result = await callClaude(
-        `You are a world-class resume writer. Rewrite this resume line to be exceptional.
+    const maxRetries = 3;
+    let lastCandidate = null;
+    let lastReason = '';
+
+    for (let i = attempt; i < maxRetries; i++) {
+      try {
+        const result = await callClaude(
+          `You are a world-class resume writer. Rewrite this resume line to be SUBSTANTIALLY BETTER — not cosmetically similar.
 Return ONLY valid JSON: {"improved":"...","reason":"..."}
 
 Section: ${item.section || 'Resume'}
 Original (${origEffLen} chars): "${item.original}"
 
-CHARACTER TARGET: Write a rewrite that is between ${min} and ${max} characters (${Math.round((min/origEffLen-1)*100)}%–${Math.round((max/origEffLen-1)*100)}% longer than original).
+CRITICAL RULE: Your rewrite MUST be MEANINGFULLY DIFFERENT from the original. 
+- Use a DIFFERENT opening action verb than the original uses.
+- Restructure the sentence — don't just insert/append a word or two.
+- Add quantified impact, strategic framing, or specificity NOT in the original.
+- If the original says "Executed competitor analysis", rewrite as something like "Spearheaded comprehensive competitive benchmarking" — genuinely different phrasing.
+
+CHARACTER TARGET: Between ${min} and ${max} characters (${Math.round((min/origEffLen-1)*100)}%–${Math.round((max/origEffLen-1)*100)}% longer than original).
 Every dash variant (-, –, —, ‒, −) = 1 character.
-MINIMUM: ${min} chars — at least 3% longer than original.
-MAXIMUM: ${max} chars — at most 10% longer than original.
-The improved text MUST NOT be identical to the original.
-NEVER truncate mid-word, mid-sentence, or produce a fragment.
-"improved" must end at a complete grammatical thought.
+MINIMUM: ${min} chars. MAXIMUM: ${max} chars.
+NEVER truncate mid-word or mid-sentence. Must be a complete grammatical thought.
 
 QUALITY RULES:
-• Start with a strong past-tense action verb (Spearheaded, Drove, Delivered, Orchestrated…)
+• Start with a strong past-tense action verb DIFFERENT from the original's first verb
 • Embed specificity from the original — real numbers, tools, outcomes. Zero fabrication.
-• "reason" = one sentence explaining what was strategically improved — no mention of character counts`, 800
-      );
-      const candidate = validateImproved(result.improved);
-      const newReason = (result.reason || '').trim();
-      if (candidate) {
-        setImprovedState(candidate);
-        setReasonState(newReason || 'Rewritten with stronger action verb, specificity, and measurable impact.');
+• "reason" = one sentence explaining what was strategically improved — no mention of character counts
+• If you return text identical to the original, the system will REJECT it and retry — so always rewrite meaningfully.`, 800
+        );
+        lastCandidate = validateImproved(result.improved);
+        lastReason = (result.reason || '').trim();
+        if (lastCandidate) {
+          setImprovedState(lastCandidate);
+          setReasonState(lastReason || 'Rewritten with stronger action verb, specificity, and measurable impact.');
+          break;
+        }
+      } catch {
+        // continue to next retry
       }
-    } catch {
-      // silently ignore
     }
+    regenAttempts.current++;
     setGenerating(false);
   }
 
