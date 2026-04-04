@@ -20,6 +20,7 @@ const STREAM_INDUSTRY_ROLE = {
     "E-commerce": ["Category Manager","Product Marketing Manager"],
     "Operations & Supply Chain": ["Operations Manager","Supply Chain Analyst","Logistics Manager","Procurement Manager","Warehouse Manager"],
     "Human Resources": ["HR Generalist","HRBP","Talent Acquisition Specialist","L&D Specialist","Compensation & Benefits Analyst"],
+    "Product Management": ["Product Manager","Associate Product Manager","Senior Product Manager","Group Product Manager"],
   },
   "Engineering / Technology": {
     "Technology / Product": ["Software Engineer","Backend Developer","Frontend Developer","Full Stack Developer","Product Manager","Associate Product Manager"],
