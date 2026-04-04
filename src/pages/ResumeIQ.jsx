@@ -20,6 +20,7 @@ const STREAM_INDUSTRY_ROLE = {
     "E-commerce": ["Category Manager","Product Marketing Manager"],
     "Operations & Supply Chain": ["Operations Manager","Supply Chain Analyst","Logistics Manager","Procurement Manager","Warehouse Manager"],
     "Human Resources": ["HR Generalist","HRBP","Talent Acquisition Specialist","L&D Specialist","Compensation & Benefits Analyst"],
+    "Product Management": ["Product Manager","Associate Product Manager","Senior Product Manager","Group Product Manager"],
   },
   "Engineering / Technology": {
     "Technology / Product": ["Software Engineer","Backend Developer","Frontend Developer","Full Stack Developer","Product Manager","Associate Product Manager"],
@@ -57,6 +58,16 @@ const STREAM_INDUSTRY_ROLE = {
   },
   "MBA - HR": {
     "Human Resources": ["HR Generalist","Talent Acquisition Specialist","HRBP","L&D Specialist","Compensation & Benefits Analyst"],
+  },
+  "MBA - Product Management": {
+    "Technology / SaaS": ["Product Manager","Associate Product Manager","Senior Product Manager","Group Product Manager"],
+    "E-commerce": ["Product Manager","Associate Product Manager"],
+    "FinTech": ["Product Manager","Associate Product Manager"],
+    "HealthTech": ["Product Manager"],
+    "EdTech": ["Product Manager","Associate Product Manager"],
+    "Consumer Tech": ["Product Manager","Senior Product Manager","Group Product Manager"],
+    "B2B / Enterprise": ["Product Manager","Senior Product Manager","Group Product Manager"],
+    "Platform / Marketplace": ["Product Manager","Senior Product Manager"],
   },
   "Commerce (B.Com / CA / CFA)": {
     "Accounting / Audit": ["Accountant","Auditor","Tax Consultant"],
@@ -611,6 +622,8 @@ async function runAnalysis({ resumeText, jdText, industry, role, stream }) {
     'Inventory Planner':          ['inventory planning','demand forecasting','stock management','replenishment','ERP','Excel','S&OP','lead time','service level','cost','supplier','data analysis'],
     'Wealth Manager':             ['wealth management','HNI','portfolio','investment advisory','financial planning','asset allocation','equities','fixed income','AUM','client relationship','regulatory'],
     'Corporate Strategy Associate':['corporate strategy','strategic planning','M&A','competitive analysis','market entry','business case','scenario planning','financial model','board presentation','OKR'],
+    'Senior Product Manager':     ['roadmap','product strategy','P&L','revenue','OKR','KPI','stakeholder management','cross-functional','go-to-market','GTM','product-market fit','A/B test','experimentation','sprint planning','backlog','PRD','user research','retention','NPS','CSAT','DAU','MAU','churn','conversion','funnel','Figma','Jira','Agile','Scrum','data-driven','Mixpanel','Amplitude','platform','API','integration','product vision','executive presentation','roadmap prioritisation','feature adoption','competitive analysis','pricing strategy','customer segmentation','growth strategy','product analytics','cohort analysis','monetisation'],
+    'Group Product Manager':      ['product strategy','product portfolio','P&L ownership','revenue growth','team leadership','product vision','OKR','KPI','go-to-market','GTM','cross-functional leadership','stakeholder management','executive communication','roadmap','strategic planning','competitive analysis','market entry','platform strategy','API strategy','data strategy','A/B testing','experimentation','user research','customer insight','pricing','monetisation','growth','retention','acquisition','product org','hiring','mentoring','product operations','agile transformation','product culture','board presentation','investor communication'],
   };
 
   const resumeLower = resumeText.toLowerCase();
@@ -1394,6 +1407,8 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
       'Frontend Developer':         ['frontend','react developer','ui developer','javascript developer','web developer'],
       'Full Stack Developer':       ['full stack','fullstack','mern','mean','web developer','software engineer'],
       'Associate Product Manager':  ['associate product manager','apm ','product analyst','junior pm','product intern'],
+      'Senior Product Manager':     ['senior product manager','lead product manager','sr. pm','product lead','head of product','principal pm'],
+      'Group Product Manager':      ['group product manager','gpm','director of product','vp product','head of product','chief product officer','cpo'],
       'Data Scientist':             ['data scientist','ml engineer','ai engineer','machine learning','analytics'],
       'Data Analyst':               ['data analyst','business intelligence','bi analyst','sql analyst','reporting analyst'],
       'Machine Learning Engineer':  ['machine learning engineer','ml engineer','ai engineer','deep learning','mlops'],
@@ -1515,6 +1530,8 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
       'Product Designer':           ['figma','sketch','adobe xd','miro','protopie','user testing tools'],
       'Graphic Designer':           ['adobe illustrator','photoshop','indesign','figma','canva','after effects'],
       'Data Analyst':               ['sql','python','excel','power bi','tableau','google analytics'],
+      'Senior Product Manager':     ['figma','jira','agile','scrum','roadmap','mixpanel','amplitude','a/b test','sql','tableau','power bi','miro','confluence','notion','productboard','pendo','fullstory','google analytics'],
+      'Group Product Manager':      ['figma','jira','agile','scrum','roadmap','mixpanel','amplitude','a/b test','sql','tableau','power bi','miro','confluence','notion','productboard','pendo','fullstory','google analytics','okr tools','looker'],
     };
     const skillSigs = SKILL_MAP[roleKey] || [];
     const skillHits2 = skillSigs.filter(s => resumeLower.includes(s)).length;
