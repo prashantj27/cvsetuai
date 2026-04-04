@@ -1406,6 +1406,8 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
       'Frontend Developer':         ['frontend','react developer','ui developer','javascript developer','web developer'],
       'Full Stack Developer':       ['full stack','fullstack','mern','mean','web developer','software engineer'],
       'Associate Product Manager':  ['associate product manager','apm ','product analyst','junior pm','product intern'],
+      'Senior Product Manager':     ['senior product manager','lead product manager','sr. pm','product lead','head of product','principal pm'],
+      'Group Product Manager':      ['group product manager','gpm','director of product','vp product','head of product','chief product officer','cpo'],
       'Data Scientist':             ['data scientist','ml engineer','ai engineer','machine learning','analytics'],
       'Data Analyst':               ['data analyst','business intelligence','bi analyst','sql analyst','reporting analyst'],
       'Machine Learning Engineer':  ['machine learning engineer','ml engineer','ai engineer','deep learning','mlops'],
