@@ -58,6 +58,16 @@ const STREAM_INDUSTRY_ROLE = {
   "MBA - HR": {
     "Human Resources": ["HR Generalist","Talent Acquisition Specialist","HRBP","L&D Specialist","Compensation & Benefits Analyst"],
   },
+  "MBA - Product Management": {
+    "Technology / SaaS": ["Product Manager","Associate Product Manager","Senior Product Manager","Group Product Manager"],
+    "E-commerce": ["Product Manager","Associate Product Manager"],
+    "FinTech": ["Product Manager","Associate Product Manager"],
+    "HealthTech": ["Product Manager"],
+    "EdTech": ["Product Manager","Associate Product Manager"],
+    "Consumer Tech": ["Product Manager","Senior Product Manager","Group Product Manager"],
+    "B2B / Enterprise": ["Product Manager","Senior Product Manager","Group Product Manager"],
+    "Platform / Marketplace": ["Product Manager","Senior Product Manager"],
+  },
   "Commerce (B.Com / CA / CFA)": {
     "Accounting / Audit": ["Accountant","Auditor","Tax Consultant"],
     "Finance": ["Financial Analyst","Credit Analyst"],
