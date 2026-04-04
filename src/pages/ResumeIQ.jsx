@@ -1127,21 +1127,69 @@ Return ONLY this JSON:
 }`;
 
 
+/* ── line rewrite validation helpers ───────────────────────────── */
+function canonicalizeLine(text) {
+  return (text || '')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[–—‒−]/g, '-')
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function tokenizeLine(text) {
+  return canonicalizeLine(text).split(' ').filter(Boolean);
+}
+
+function jaccardSimilarity(tokensA, tokensB) {
+  const setA = new Set(tokensA);
+  const setB = new Set(tokensB);
+  if (!setA.size && !setB.size) return 1;
+  let intersection = 0;
+  for (const token of setA) if (setB.has(token)) intersection++;
+  const union = new Set([...setA, ...setB]).size;
+  return union ? intersection / union : 0;
+}
+
+function isMeaningfullyDifferentLine(original, candidate) {
+  const normOrig = canonicalizeLine(original);
+  const normCand = canonicalizeLine(candidate);
+  if (!normCand) return false;
+  if (normOrig === normCand) return false;
+
+  const origTokens = tokenizeLine(original);
+  const candTokens = tokenizeLine(candidate);
+  if (!origTokens.length || !candTokens.length) return normOrig !== normCand;
+
+  const sharedPrefix = origTokens.filter((token, idx) => candTokens[idx] === token).length;
+  const leadOrig = origTokens.slice(0, 3).join(' ');
+  const leadCand = candTokens.slice(0, 3).join(' ');
+  const similarity = jaccardSimilarity(origTokens, candTokens);
+  const charDelta = Math.abs(normCand.length - normOrig.length);
+
+  if (leadOrig && leadOrig === leadCand) return false;
+  if (sharedPrefix >= Math.min(4, origTokens.length, candTokens.length)) return false;
+  if (similarity >= 0.9) return false;
+  if (similarity >= 0.82 && charDelta <= 6) return false;
+
+  return true;
+}
+
 /* ── repairLine: module-level — validates improved line length constraints (3%-10%) ── */
 /* Returns the valid improved text, or null if invalid (so caller can trigger regen) */
-function repairLine(original, improved) {
+function repairLine(original, improved, opts = {}) {
   const origLen = effectiveLength(original);
-  const minLen  = Math.ceil(origLen * 1.03);
-  const maxLen  = Math.ceil(origLen * 1.10);
+  const minLen  = opts.minLen ?? Math.ceil(origLen * 1.03);
+  const maxLen  = opts.maxLen ?? Math.ceil(origLen * 1.10);
   const t = (improved || '').trim();
   if (!t) return null;
-  // Normalize whitespace for comparison
-  const normOrig = original.replace(/\s+/g, ' ').trim().toLowerCase();
-  const normImp  = t.replace(/\s+/g, ' ').trim().toLowerCase();
-  if (normImp === normOrig) return null; // must not be identical
+  if (!isMeaningfullyDifferentLine(original, t)) return null;
   const tLen = effectiveLength(t);
-  if (tLen < minLen) return null; // too short
-  if (tLen > maxLen) return null; // too long
+  if (tLen < minLen) return null;
+  if (tLen > maxLen) return null;
   return t;
 }
 
@@ -2645,17 +2693,12 @@ function LineItemCard({ item }) {
     return { n:'>10%', color: T.danger };
   };
 
-  /* Validation — enforce 3%-10% window and no identical lines */
-  function validateImproved(raw) {
-    const t = (raw || '').trim();
-    if (!t) return null;
-    const normOrig = item.original.replace(/\s+/g, ' ').trim().toLowerCase();
-    const normImp  = t.replace(/\s+/g, ' ').trim().toLowerCase();
-    if (normImp === normOrig) return null; // must not be identical
-    const tLen = effectiveLength(t);
-    if (tLen < minChars) return null;
-    if (tLen > maxChars) return null;
-    return t;
+  /* Validation — enforce 3%-10% window and reject near-identical lines */
+  function validateImproved(raw, limits = {}) {
+    return repairLine(item.original, raw, {
+      minLen: limits.minLen ?? minChars,
+      maxLen: limits.maxLen ?? maxChars,
+    });
   }
 
   const validatedInitial = validateImproved(item.improved);
@@ -2697,12 +2740,16 @@ function LineItemCard({ item }) {
   async function regenerate(bias = charBias, attempt = 0) {
     if (generating) return;
     setGenerating(true);
-    const { min, max, targetMax } = getTargetWindow(bias);
-    const maxRetries = 3;
+    const { min, max } = getTargetWindow(bias);
+    const maxRetries = 4;
+    const bannedLead = tokenizeLine(item.original).slice(0, 3).join(' ');
     let lastCandidate = null;
     let lastReason = '';
 
     for (let i = attempt; i < maxRetries; i++) {
+      const retryDirective = i === 0
+        ? 'This is the first rewrite attempt.'
+        : `Retry ${i}: the previous output was rejected for being too similar or violating constraints. Change the opening phrasing and sentence structure more aggressively while preserving facts.`;
       try {
         const result = await callClaude(
           `You are a world-class resume writer. Rewrite this resume line to be SUBSTANTIALLY BETTER — not cosmetically similar.
@@ -2711,34 +2758,42 @@ Return ONLY valid JSON: {"improved":"...","reason":"..."}
 Section: ${item.section || 'Resume'}
 Original (${origEffLen} chars): "${item.original}"
 
-CRITICAL RULE: Your rewrite MUST be MEANINGFULLY DIFFERENT from the original. 
+${retryDirective}
+CRITICAL RULES:
+- Your rewrite MUST be MEANINGFULLY DIFFERENT from the original.
 - Use a DIFFERENT opening action verb than the original uses.
-- Restructure the sentence — don't just insert/append a word or two.
-- Add quantified impact, strategic framing, or specificity NOT in the original.
-- If the original says "Executed competitor analysis", rewrite as something like "Spearheaded comprehensive competitive benchmarking" — genuinely different phrasing.
+- Do NOT begin with the same first 3 meaningful words as the original${bannedLead ? ` (forbidden opening: "${bannedLead}")` : ''}.
+- Restructure the sentence — do not just insert, append, or lightly swap a few words.
+- Preserve factual meaning, tools, metrics, and outcomes already present. Zero fabrication.
+- Increase specificity, clarity, and impact while keeping the line fully ATS-friendly.
 
-CHARACTER TARGET: Between ${min} and ${max} characters (${Math.round((min/origEffLen-1)*100)}%–${Math.round((max/origEffLen-1)*100)}% longer than original).
+CHARACTER TARGET: Between ${min} and ${max} characters (${Math.round((min / origEffLen - 1) * 100)}%–${Math.round((max / origEffLen - 1) * 100)}% longer than original).
 Every dash variant (-, –, —, ‒, −) = 1 character.
 MINIMUM: ${min} chars. MAXIMUM: ${max} chars.
 NEVER truncate mid-word or mid-sentence. Must be a complete grammatical thought.
 
 QUALITY RULES:
 • Start with a strong past-tense action verb DIFFERENT from the original's first verb
-• Embed specificity from the original — real numbers, tools, outcomes. Zero fabrication.
+• Keep the rewrite factually grounded in the original line only
 • "reason" = one sentence explaining what was strategically improved — no mention of character counts
-• If you return text identical to the original, the system will REJECT it and retry — so always rewrite meaningfully.`, 800
+• If the output is too similar to the original, the system will reject it automatically.`, 800
         );
-        lastCandidate = validateImproved(result.improved);
+        lastCandidate = validateImproved(result.improved, { minLen: min, maxLen: max });
         lastReason = (result.reason || '').trim();
         if (lastCandidate) {
           setImprovedState(lastCandidate);
-          setReasonState(lastReason || 'Rewritten with stronger action verb, specificity, and measurable impact.');
+          setReasonState(lastReason || 'Rewritten with stronger action verb, clearer structure, and sharper impact.');
           break;
         }
       } catch {
         // continue to next retry
       }
     }
+
+    if (!lastCandidate && improvedState) {
+      setReasonState('Could not generate a distinct enough rewrite yet — please try again.');
+    }
+
     regenAttempts.current++;
     setGenerating(false);
   }
@@ -2885,10 +2940,9 @@ QUALITY:
 • Real numbers, tools, outcomes from original — zero fabrication.
 • "reason" = one sentence on strategic improvement — no character count mention.`, 700
         );
-        const improved = (result.improved || '').trim();
-        const reason   = (result.reason   || '').trim();
-        const impLen = effectiveLength(improved);
-        if (improved && improved !== item.original && impLen >= Math.ceil(origLen * 1.03) && impLen <= Math.ceil(origLen * 1.10)) {
+        const improved = repairLine(item.original, (result.improved || '').trim());
+        const reason   = (result.reason || '').trim();
+        if (improved) {
           updated[i] = { ...item, improved, reason };
         }
       } catch { /* keep original item on error */ }
