@@ -1529,6 +1529,8 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
       'Product Designer':           ['figma','sketch','adobe xd','miro','protopie','user testing tools'],
       'Graphic Designer':           ['adobe illustrator','photoshop','indesign','figma','canva','after effects'],
       'Data Analyst':               ['sql','python','excel','power bi','tableau','google analytics'],
+      'Senior Product Manager':     ['figma','jira','agile','scrum','roadmap','mixpanel','amplitude','a/b test','sql','tableau','power bi','miro','confluence','notion','productboard','pendo','fullstory','google analytics'],
+      'Group Product Manager':      ['figma','jira','agile','scrum','roadmap','mixpanel','amplitude','a/b test','sql','tableau','power bi','miro','confluence','notion','productboard','pendo','fullstory','google analytics','okr tools','looker'],
     };
     const skillSigs = SKILL_MAP[roleKey] || [];
     const skillHits2 = skillSigs.filter(s => resumeLower.includes(s)).length;
