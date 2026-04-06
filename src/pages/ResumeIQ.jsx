@@ -1626,13 +1626,20 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
   const selectedRoleEntry = streamRoleScores.find(r => r.role === selectedRoleKey);
   const rawSelectedScore = selectedRoleEntry ? selectedRoleEntry.score : (streamRoleScores[0]?.score || 70);
   const usedScores = new Set();
+  // Scale multi-role scores proportionally to calibrated overall score
+  // and apply the same relaxed hard caps for consistency
+  const scaleFactor_mr = rawSelectedScore > 0 ? calibratedAtsScore / rawSelectedScore : 1;
   const deduped = streamRoleScores
     .sort((a, b) => b.score - a.score)
     .map(rs => {
-      let s = rawSelectedScore > 0
-        ? Math.round(rs.score * (calibratedAtsScore / rawSelectedScore))
-        : rs.score;
+      let s = Math.round(rs.score * scaleFactor_mr);
+      // Apply same relaxed hard caps as overall score
+      if (jsOverallHits < 12) s = Math.min(s, 86);
+      if (jsOverallHits < 7)  s = Math.min(s, 76);
+      if (jsOverallHits < 4)  s = Math.min(s, 62);
       s = Math.max(0, Math.min(100, s));
+      // Ensure selected role matches calibratedAtsScore exactly
+      if (rs.role === selectedRoleKey) s = calibratedAtsScore;
       while (usedScores.has(s)) s = Math.max(0, s - 1);
       usedScores.add(s);
       return { ...rs, score: s };
