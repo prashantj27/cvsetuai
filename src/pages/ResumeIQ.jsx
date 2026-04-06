@@ -1982,7 +1982,7 @@ function LandingScreen({ onStart, onCreateResume }) {
             display:'flex',alignItems:'center',gap:9,
             animation:'floatY 3.5s ease-in-out infinite',
           }}>⚡ Analyze My Resume</button>
-          <button className="btn-ghost" onClick={onCreateResume} style={{ padding:'15px 30px', fontSize:15, display:'flex',alignItems:'center',gap:8 }}>
+          <button className="btn-create-scratch" onClick={onCreateResume} style={{ padding:'15px 30px', fontSize:15, display:'flex',alignItems:'center',gap:8 }}>
             ✨ Create Resume from Scratch
           </button>
         </div>
