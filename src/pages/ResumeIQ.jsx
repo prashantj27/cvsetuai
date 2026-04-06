@@ -164,6 +164,29 @@ const GLOBAL_CSS = `
   @keyframes floatY    { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
   @keyframes pulse     { 0%,100%{opacity:.5;transform:scale(1)} 50%{opacity:.9;transform:scale(1.07)} }
   @keyframes spin      { to { transform: rotate(360deg); } }
+  @keyframes shimmerBg { 0%{background-position:200% center} 100%{background-position:-200% center} }
+  .btn-create-scratch {
+    background: linear-gradient(90deg, rgba(255,255,255,0.55) 0%, rgba(212,168,80,0.18) 25%, rgba(176,125,42,0.25) 50%, rgba(212,168,80,0.18) 75%, rgba(255,255,255,0.55) 100%);
+    background-size: 200% 100%;
+    animation: shimmerBg 3s ease-in-out infinite;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(195,165,110,0.45);
+    border-radius: 10px;
+    color: #5A4520;
+    font-family: 'Jost', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-create-scratch:hover {
+    background-size: 200% 100%;
+    border-color: rgba(176,125,42,0.7);
+    color: #2A1D08;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(176,125,42,0.3);
+  }
   @keyframes spinRev   { to { transform: rotate(-360deg); } }
   @keyframes blink     { 0%,100%{opacity:.2} 50%{opacity:1} }
   @keyframes shimmer   { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
@@ -1959,7 +1982,7 @@ function LandingScreen({ onStart, onCreateResume }) {
             display:'flex',alignItems:'center',gap:9,
             animation:'floatY 3.5s ease-in-out infinite',
           }}>⚡ Analyze My Resume</button>
-          <button className="btn-ghost" onClick={onCreateResume} style={{ padding:'15px 30px', fontSize:15, display:'flex',alignItems:'center',gap:8 }}>
+          <button className="btn-create-scratch" onClick={onCreateResume} style={{ padding:'15px 30px', fontSize:15, display:'flex',alignItems:'center',gap:8 }}>
             ✨ Create Resume from Scratch
           </button>
         </div>
