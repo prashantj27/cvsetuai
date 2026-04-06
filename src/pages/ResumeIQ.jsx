@@ -1600,19 +1600,23 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
   // blend it with the AI score to ground it in reality.
   const selectedRoleKey = role || 'Business Analyst';
   const jsOverallHits = countKeywordHits(selectedRoleKey);
-  const jsOverallKw = Math.min((jsOverallHits / Math.max((ROLE_KEYWORD_BANKS[selectedRoleKey] || []).length, 1)) * 100, 100);
+  const roleBank = ROLE_KEYWORD_BANKS[selectedRoleKey] || [];
+  const jsOverallKw = Math.min((jsOverallHits / Math.max(roleBank.length, 1)) * 100, 100);
   const quantPatternGlobal = /\d+[\.,]?\d*\s*(%|x|×|cr|lakh|million|billion|k\b|mn|bn|hrs?|days?|weeks?|months?|years?|people|members?|team|users?|clients?|deals?|projects?)/gi;
   const globalQuantHits = (resumeText.match(quantPatternGlobal) || []).length;
-  const jsOverallAch = Math.min(globalQuantHits * 9, 100);
-  const jsOverallEst = Math.round(jsOverallKw * 0.30 + jsOverallAch * 0.20 + 60 * 0.50);
+  const jsOverallAch = Math.min(globalQuantHits * 12, 100);
+  // Relaxed baseline: anchor at 65 instead of 60, give more weight to AI score
+  const jsOverallEst = Math.round(jsOverallKw * 0.28 + jsOverallAch * 0.18 + 65 * 0.54);
   
   let calibratedAtsScore = resultA.atsScore || 60;
-  if (calibratedAtsScore > jsOverallEst + 25) {
-    calibratedAtsScore = Math.round(jsOverallEst * 0.35 + calibratedAtsScore * 0.65);
+  // Softer blending: only pull down when AI is significantly above JS estimate
+  if (calibratedAtsScore > jsOverallEst + 30) {
+    calibratedAtsScore = Math.round(jsOverallEst * 0.25 + calibratedAtsScore * 0.75);
   }
-  if (jsOverallHits < 12) calibratedAtsScore = Math.min(calibratedAtsScore, 78);
-  if (jsOverallHits < 7)  calibratedAtsScore = Math.min(calibratedAtsScore, 68);
-  if (jsOverallHits < 4)  calibratedAtsScore = Math.min(calibratedAtsScore, 55);
+  // Relaxed hard caps (+8-10 pts each tier)
+  if (jsOverallHits < 12) calibratedAtsScore = Math.min(calibratedAtsScore, 86);
+  if (jsOverallHits < 7)  calibratedAtsScore = Math.min(calibratedAtsScore, 76);
+  if (jsOverallHits < 4)  calibratedAtsScore = Math.min(calibratedAtsScore, 62);
   let calibratedRecruiterScore = resultA.recruiterScore || 60;
   if (calibratedRecruiterScore > calibratedAtsScore + 15) {
     calibratedRecruiterScore = calibratedAtsScore + Math.round((calibratedRecruiterScore - calibratedAtsScore) * 0.5);
