@@ -5796,6 +5796,7 @@ async function downloadResumeAsPDF(elementId, candidateName) {
    Bold (gradient header), Academic — using OOXML paragraph/table XML.
 ──────────────────────────────────────────────────────────────── */
 async function downloadResumeAsWord(data, tmpl, sections, pageMode = 'multi') {
+  track('resume-download', { format: 'docx', template: tmpl?.id || tmpl?.name || 'unknown' });
   if (!data) throw new Error('No resume data available.');
 
   // ── Load JSZip ──────────────────────────────────────────────
