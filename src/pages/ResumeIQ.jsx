@@ -2131,10 +2131,10 @@ function LandingScreen({ onStart, onCreateResume }) {
         <h2 style={{ fontFamily:"'Playfair Display',serif",fontSize:32,fontWeight:700,marginBottom:12,color:T.text }}>Ready to Beat the ATS?</h2>
         <p style={{ color:T.muted,marginBottom:30,fontSize:15,fontFamily:"'Jost',sans-serif",maxWidth:480,margin:'0 auto 30px' }}>Upload your PDF in seconds. Get your full intelligence report instantly — completely free.</p>
         <div style={{ display:'flex',gap:14,justifyContent:'center',flexWrap:'wrap' }}>
-          <button className="btn-primary" onClick={onStart} style={{ padding:'15px 38px', fontSize:16 }}>
+          <button className="btn-primary" onClick={()=>{ track('cta-analyze-resume', { location: 'footer' }); onStart(); }} style={{ padding:'15px 38px', fontSize:16 }}>
             Get Free ATS Report →
           </button>
-          <button className="btn-ghost" onClick={onCreateResume} style={{ padding:'15px 30px', fontSize:15 }}>
+          <button className="btn-ghost" onClick={()=>{ track('cta-create-resume', { location: 'footer' }); onCreateResume(); }} style={{ padding:'15px 30px', fontSize:15 }}>
             ✨ Build Resume from Scratch
           </button>
         </div>
