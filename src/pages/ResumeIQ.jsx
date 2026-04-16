@@ -8370,6 +8370,7 @@ function _htmlToOoxmlBody(html, widthDxa) {
 
 // ── Assemble complete DOCX zip ────────────────────────────────
 async function downloadDittoCopyAsWord(html, candidateName = 'Resume') {
+  track('resume-download', { format: 'docx', mode: 'ditto-copy' });
   const safeName = (candidateName || 'Resume').replace(/\s+/g, '_');
 
   // Load JSZip
