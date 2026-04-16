@@ -3912,7 +3912,7 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
             <span style={{ fontSize:16,fontWeight:700,color:scoreColor(results.atsScore),fontFamily:"'Playfair Display',serif" }}>{results.atsScore}</span>
             <span style={{ fontSize:11,color:T.muted }}>/ 100</span>
           </div>
-          <button className="btn-ghost" onClick={onReanalyze} style={{ padding:'7px 13px',fontSize:12 }}>🔄 Re-analyse</button>
+          <button className="btn-ghost" onClick={()=>{ track('dashboard-reanalyse'); onReanalyze(); }} style={{ padding:'7px 13px',fontSize:12 }}>🔄 Re-analyse</button>
         </div>
       </div>
 
