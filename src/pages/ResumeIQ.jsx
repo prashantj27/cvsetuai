@@ -1972,10 +1972,10 @@ function LandingScreen({ onStart, onCreateResume }) {
         </div>
         <div className="riq-nav-right" style={{ display:'flex',gap:8,alignItems:'center' }}>
           <span className="riq-nav-badge" style={{ fontSize:12,color:T.muted,padding:'5px 14px', background:'rgba(255,255,255,0.55)', backdropFilter:'blur(10px)', border:`1px solid rgba(195,165,110,0.3)`,borderRadius:20, letterSpacing:'0.8px', fontFamily:"'Jost',sans-serif" }}>AI · FREE · INSTANT</span>
-          <button className="btn-ghost" onClick={onCreateResume} style={{ padding:'9px 20px', fontSize:13, display:'flex',alignItems:'center',gap:6 }}>
+          <button className="btn-ghost" onClick={()=>{ track('cta-create-resume', { location: 'nav' }); onCreateResume(); }} style={{ padding:'9px 20px', fontSize:13, display:'flex',alignItems:'center',gap:6 }}>
             ✨ Create Resume
           </button>
-          <button className="btn-primary" onClick={onStart} style={{ padding:'9px 22px', fontSize:13 }}>
+          <button className="btn-primary" onClick={()=>{ track('cta-analyze-resume', { location: 'nav' }); onStart(); }} style={{ padding:'9px 22px', fontSize:13 }}>
             Analyze Resume →
           </button>
         </div>
