@@ -3843,8 +3843,20 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, [tab]);
 
+  // Fire once when the dashboard first opens after analysis completes
+  useEffect(() => {
+    track('analysis-completed', {
+      atsScore: results?.atsScore,
+      hasJD: !!results?.hasJD,
+      jdMatchPct: results?.jdMatch?.percentage ?? null,
+    });
+    track('dashboard-tab-view', { tab: 'Overview', initial: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleChat = useCallback(async () => {
     const msg = chatInput.trim(); if (!msg || chatLoading) return;
+    track('coach-message-sent', { length: msg.length });
     setChatInput('');
     const next = [...history, { role:'user', content:msg }];
     setHistory(next);
@@ -3858,8 +3870,10 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
       if (!msgs.length) return;
       const resp = await sendChat(msgs, results);
       setHistory(h => [...h, { role:'assistant', content:resp }]);
+      track('coach-reply-received');
     } catch(err) {
       setHistory(h => [...h, { role:'assistant', content:'Sorry, I encountered an error. Please try again.' }]);
+      track('coach-error');
     }
     setChatLoading(false);
   }, [chatInput, chatLoading, history, results]);
