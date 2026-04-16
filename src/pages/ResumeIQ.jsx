@@ -2198,16 +2198,18 @@ function UploadScreen({ onBack, onAnalyze }) {
     return [...new Set(Object.values(streamData).flat())].sort();
   }, [stream, industry]);
 
-  const onStreamChange = (val) => { setStream(val); setIndustry(''); setRole(''); };
-  const onIndustryChange = (val) => { setIndustry(val); setRole(''); };
+  const onStreamChange = (val) => { setStream(val); setIndustry(''); setRole(''); track('stream-selected', { stream: val }); };
+  const onIndustryChange = (val) => { setIndustry(val); setRole(''); track('industry-selected', { industry: val, stream }); };
+  const onRoleChange = (val) => { setRole(val); track('role-selected', { role: val, industry, stream }); };
 
-  const onDrop = useCallback((e, setter, setDrag) => {
+  const onDrop = useCallback((e, setter, setDrag, kind) => {
     e.preventDefault(); setDrag(false);
     const f = e.dataTransfer?.files[0] ?? e.target.files?.[0];
     if (!f) return;
-    if (f.type !== 'application/pdf') { alert('Please upload a PDF file.'); return; }
-    if (f.size > 5 * 1024 * 1024)    { alert('File too large. Max 5 MB.'); return; }
+    if (f.type !== 'application/pdf') { alert('Please upload a PDF file.'); track('upload-rejected', { kind, reason: 'not-pdf' }); return; }
+    if (f.size > 5 * 1024 * 1024)    { alert('File too large. Max 5 MB.'); track('upload-rejected', { kind, reason: 'too-large' }); return; }
     setter(f);
+    track(kind === 'jd' ? 'jd-uploaded' : 'resume-uploaded', { sizeKB: Math.round(f.size/1024) });
   }, []);
 
   const selectStyle = (disabled) => ({
