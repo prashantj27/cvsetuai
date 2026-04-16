@@ -3854,6 +3854,67 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ── TIME-ON-TAB tracking ────────────────────────────────────
+  // Emits `dashboard-tab-time` when the user leaves a tab (or unmounts/hides).
+  // Only counts active foreground time (pauses on tab hidden).
+  useEffect(() => {
+    let activeStart = Date.now();
+    let accumulated = 0;
+    const onVisibility = () => {
+      if (document.hidden) {
+        accumulated += Date.now() - activeStart;
+      } else {
+        activeStart = Date.now();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      if (!document.hidden) accumulated += Date.now() - activeStart;
+      const seconds = Math.round(accumulated / 1000);
+      // Ignore ultra-short flips (<2s) to reduce noise from quick tab scans
+      if (seconds >= 2) {
+        track('dashboard-tab-time', { tab, seconds });
+      }
+    };
+  }, [tab]);
+
+  // ── SCROLL-DEPTH tracking (per tab) ─────────────────────────
+  // Emits `dashboard-scroll-depth` once per band (25/50/75/100) per tab visit.
+  useEffect(() => {
+    const reached = new Set();
+    let ticking = false;
+    const measure = () => {
+      ticking = false;
+      const doc = document.documentElement;
+      const scrollTop = window.scrollY || doc.scrollTop;
+      const viewport = window.innerHeight || doc.clientHeight;
+      const total = Math.max(doc.scrollHeight, doc.offsetHeight) - viewport;
+      if (total <= 0) return;
+      const pct = Math.min(100, Math.round((scrollTop / total) * 100));
+      [25, 50, 75, 100].forEach(band => {
+        if (pct >= band && !reached.has(band)) {
+          reached.add(band);
+          track('dashboard-scroll-depth', { tab, depth: band });
+        }
+      });
+    };
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(measure);
+    };
+    // Initial measurement (short tabs may already be 100% visible)
+    const initial = setTimeout(measure, 350);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      clearTimeout(initial);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, [tab]);
+
   const handleChat = useCallback(async () => {
     const msg = chatInput.trim(); if (!msg || chatLoading) return;
     track('coach-message-sent', { length: msg.length });
