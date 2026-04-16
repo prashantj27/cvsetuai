@@ -5769,6 +5769,7 @@ Return this EXACT JSON structure (empty string/array if info not available — n
    DOWNLOAD UTILITIES
 ──────────────────────────────────────────────────────────────── */
 async function downloadResumeAsPDF(elementId, candidateName) {
+  track('resume-download', { format: 'pdf' });
   if (!window.html2pdf) {
     await new Promise((resolve, reject) => {
       const script = document.createElement('script');
