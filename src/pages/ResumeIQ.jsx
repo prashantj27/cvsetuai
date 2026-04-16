@@ -1994,12 +1994,12 @@ function LandingScreen({ onStart, onCreateResume }) {
           Upload your resume and receive the deepest AI-powered ATS intelligence report — 15 analysis modules, line-by-line rewrites, and a priority action plan to land interviews at top firms.
         </p>
         <div className="riq-hero-btns" style={{ display:'flex',gap:14,justifyContent:'center',flexWrap:'wrap' }}>
-          <button className="btn-primary" onClick={onStart} style={{
+          <button className="btn-primary" onClick={()=>{ track('cta-analyze-resume', { location: 'hero' }); onStart(); }} style={{
             padding:'15px 36px', fontSize:16,
             display:'flex',alignItems:'center',gap:9,
             animation:'floatY 3.5s ease-in-out infinite',
           }}>⚡ Analyze My Resume</button>
-          <button className="btn-create-scratch" onClick={onCreateResume} style={{ padding:'15px 30px', fontSize:15, display:'flex',alignItems:'center',gap:8 }}>
+          <button className="btn-create-scratch" onClick={()=>{ track('cta-create-resume', { location: 'hero' }); onCreateResume(); }} style={{ padding:'15px 30px', fontSize:15, display:'flex',alignItems:'center',gap:8 }}>
             ✨ Create Resume from Scratch
           </button>
         </div>
