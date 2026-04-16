@@ -2337,7 +2337,7 @@ function UploadScreen({ onBack, onAnalyze }) {
               <select
                 style={selectStyle(!stream)}
                 value={role}
-                onChange={e=>setRole(e.target.value)}
+                onChange={e=>onRoleChange(e.target.value)}
                 disabled={!stream}>
                 <option value="">{stream ? 'All Roles' : '— Select stream first —'}</option>
                 {roleOptions.map(x=><option key={x} value={x}>{x}</option>)}
