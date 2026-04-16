@@ -2266,9 +2266,9 @@ function UploadScreen({ onBack, onAnalyze }) {
             <div style={uploadDropZone(dragR)}
               onDragOver={e=>{e.preventDefault();setDragR(true)}}
               onDragLeave={()=>setDragR(false)}
-              onDrop={e=>onDrop(e,setResumeFile,setDragR)}
+              onDrop={e=>onDrop(e,setResumeFile,setDragR,'resume')}
               onClick={()=>rRef.current?.click()}>
-              <input ref={rRef} type="file" accept=".pdf" style={{display:'none'}} onChange={e=>onDrop(e,setResumeFile,setDragR)} />
+              <input ref={rRef} type="file" accept=".pdf" style={{display:'none'}} onChange={e=>onDrop(e,setResumeFile,setDragR,'resume')} />
               {resumeFile ? (
                 <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:13}}>
                   <span style={{fontSize:28}}>📄</span>
