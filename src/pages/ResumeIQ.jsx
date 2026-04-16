@@ -2357,7 +2357,7 @@ function UploadScreen({ onBack, onAnalyze }) {
           </div>
 
           {/* ── CTA ── */}
-          <button disabled={!resumeFile || !stream} onClick={()=>onAnalyze({resumeFile,jdFile,industry,role,stream})}
+          <button disabled={!resumeFile || !stream} onClick={()=>{ track('analyze-clicked', { stream, industry: industry||'(any)', role: role||'(any)', hasJD: !!jdFile }); onAnalyze({resumeFile,jdFile,industry,role,stream}); }}
             className={resumeFile && stream ? 'btn-primary' : ''}
             style={{
               width:'100%', padding:'16px',
