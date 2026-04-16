@@ -2294,9 +2294,9 @@ function UploadScreen({ onBack, onAnalyze }) {
             <div style={{...uploadDropZone(dragJ),padding:'20px'}}
               onDragOver={e=>{e.preventDefault();setDragJ(true)}}
               onDragLeave={()=>setDragJ(false)}
-              onDrop={e=>onDrop(e,setJdFile,setDragJ)}
+              onDrop={e=>onDrop(e,setJdFile,setDragJ,'jd')}
               onClick={()=>jRef.current?.click()}>
-              <input ref={jRef} type="file" accept=".pdf" style={{display:'none'}} onChange={e=>onDrop(e,setJdFile,setDragJ)} />
+              <input ref={jRef} type="file" accept=".pdf" style={{display:'none'}} onChange={e=>onDrop(e,setJdFile,setDragJ,'jd')} />
               {jdFile ? (
                 <div style={{display:'flex',alignItems:'center',gap:12}}>
                   <span style={{fontSize:22}}>📋</span>
