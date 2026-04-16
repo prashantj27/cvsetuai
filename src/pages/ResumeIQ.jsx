@@ -6,6 +6,23 @@ import {
 } from "recharts";
 
 /* ─────────────────────────────────────────────
+   UMAMI ANALYTICS — custom event tracking
+   Safe no-op if umami script not yet loaded.
+───────────────────────────────────────────── */
+function track(event, data) {
+  try {
+    if (typeof window === 'undefined') return;
+    const u = window.umami;
+    if (!u) return;
+    if (typeof u.track === 'function') {
+      data ? u.track(event, data) : u.track(event);
+    } else if (typeof u === 'function') {
+      data ? u(event, data) : u(event);
+    }
+  } catch { /* ignore */ }
+}
+
+/* ─────────────────────────────────────────────
    CONSTANTS
 ───────────────────────────────────────────── */
 const STREAM_INDUSTRY_ROLE = {
@@ -1955,10 +1972,10 @@ function LandingScreen({ onStart, onCreateResume }) {
         </div>
         <div className="riq-nav-right" style={{ display:'flex',gap:8,alignItems:'center' }}>
           <span className="riq-nav-badge" style={{ fontSize:12,color:T.muted,padding:'5px 14px', background:'rgba(255,255,255,0.55)', backdropFilter:'blur(10px)', border:`1px solid rgba(195,165,110,0.3)`,borderRadius:20, letterSpacing:'0.8px', fontFamily:"'Jost',sans-serif" }}>AI · FREE · INSTANT</span>
-          <button className="btn-ghost" onClick={onCreateResume} style={{ padding:'9px 20px', fontSize:13, display:'flex',alignItems:'center',gap:6 }}>
+          <button className="btn-ghost" onClick={()=>{ track('cta-create-resume', { location: 'nav' }); onCreateResume(); }} style={{ padding:'9px 20px', fontSize:13, display:'flex',alignItems:'center',gap:6 }}>
             ✨ Create Resume
           </button>
-          <button className="btn-primary" onClick={onStart} style={{ padding:'9px 22px', fontSize:13 }}>
+          <button className="btn-primary" onClick={()=>{ track('cta-analyze-resume', { location: 'nav' }); onStart(); }} style={{ padding:'9px 22px', fontSize:13 }}>
             Analyze Resume →
           </button>
         </div>
@@ -1977,12 +1994,12 @@ function LandingScreen({ onStart, onCreateResume }) {
           Upload your resume and receive the deepest AI-powered ATS intelligence report — 15 analysis modules, line-by-line rewrites, and a priority action plan to land interviews at top firms.
         </p>
         <div className="riq-hero-btns" style={{ display:'flex',gap:14,justifyContent:'center',flexWrap:'wrap' }}>
-          <button className="btn-primary" onClick={onStart} style={{
+          <button className="btn-primary" onClick={()=>{ track('cta-analyze-resume', { location: 'hero' }); onStart(); }} style={{
             padding:'15px 36px', fontSize:16,
             display:'flex',alignItems:'center',gap:9,
             animation:'floatY 3.5s ease-in-out infinite',
           }}>⚡ Analyze My Resume</button>
-          <button className="btn-create-scratch" onClick={onCreateResume} style={{ padding:'15px 30px', fontSize:15, display:'flex',alignItems:'center',gap:8 }}>
+          <button className="btn-create-scratch" onClick={()=>{ track('cta-create-resume', { location: 'hero' }); onCreateResume(); }} style={{ padding:'15px 30px', fontSize:15, display:'flex',alignItems:'center',gap:8 }}>
             ✨ Create Resume from Scratch
           </button>
         </div>
@@ -2114,10 +2131,10 @@ function LandingScreen({ onStart, onCreateResume }) {
         <h2 style={{ fontFamily:"'Playfair Display',serif",fontSize:32,fontWeight:700,marginBottom:12,color:T.text }}>Ready to Beat the ATS?</h2>
         <p style={{ color:T.muted,marginBottom:30,fontSize:15,fontFamily:"'Jost',sans-serif",maxWidth:480,margin:'0 auto 30px' }}>Upload your PDF in seconds. Get your full intelligence report instantly — completely free.</p>
         <div style={{ display:'flex',gap:14,justifyContent:'center',flexWrap:'wrap' }}>
-          <button className="btn-primary" onClick={onStart} style={{ padding:'15px 38px', fontSize:16 }}>
+          <button className="btn-primary" onClick={()=>{ track('cta-analyze-resume', { location: 'footer' }); onStart(); }} style={{ padding:'15px 38px', fontSize:16 }}>
             Get Free ATS Report →
           </button>
-          <button className="btn-ghost" onClick={onCreateResume} style={{ padding:'15px 30px', fontSize:15 }}>
+          <button className="btn-ghost" onClick={()=>{ track('cta-create-resume', { location: 'footer' }); onCreateResume(); }} style={{ padding:'15px 30px', fontSize:15 }}>
             ✨ Build Resume from Scratch
           </button>
         </div>
@@ -2181,16 +2198,18 @@ function UploadScreen({ onBack, onAnalyze }) {
     return [...new Set(Object.values(streamData).flat())].sort();
   }, [stream, industry]);
 
-  const onStreamChange = (val) => { setStream(val); setIndustry(''); setRole(''); };
-  const onIndustryChange = (val) => { setIndustry(val); setRole(''); };
+  const onStreamChange = (val) => { setStream(val); setIndustry(''); setRole(''); track('stream-selected', { stream: val }); };
+  const onIndustryChange = (val) => { setIndustry(val); setRole(''); track('industry-selected', { industry: val, stream }); };
+  const onRoleChange = (val) => { setRole(val); track('role-selected', { role: val, industry, stream }); };
 
-  const onDrop = useCallback((e, setter, setDrag) => {
+  const onDrop = useCallback((e, setter, setDrag, kind) => {
     e.preventDefault(); setDrag(false);
     const f = e.dataTransfer?.files[0] ?? e.target.files?.[0];
     if (!f) return;
-    if (f.type !== 'application/pdf') { alert('Please upload a PDF file.'); return; }
-    if (f.size > 5 * 1024 * 1024)    { alert('File too large. Max 5 MB.'); return; }
+    if (f.type !== 'application/pdf') { alert('Please upload a PDF file.'); track('upload-rejected', { kind, reason: 'not-pdf' }); return; }
+    if (f.size > 5 * 1024 * 1024)    { alert('File too large. Max 5 MB.'); track('upload-rejected', { kind, reason: 'too-large' }); return; }
     setter(f);
+    track(kind === 'jd' ? 'jd-uploaded' : 'resume-uploaded', { sizeKB: Math.round(f.size/1024) });
   }, []);
 
   const selectStyle = (disabled) => ({
@@ -2247,9 +2266,9 @@ function UploadScreen({ onBack, onAnalyze }) {
             <div style={uploadDropZone(dragR)}
               onDragOver={e=>{e.preventDefault();setDragR(true)}}
               onDragLeave={()=>setDragR(false)}
-              onDrop={e=>onDrop(e,setResumeFile,setDragR)}
+              onDrop={e=>onDrop(e,setResumeFile,setDragR,'resume')}
               onClick={()=>rRef.current?.click()}>
-              <input ref={rRef} type="file" accept=".pdf" style={{display:'none'}} onChange={e=>onDrop(e,setResumeFile,setDragR)} />
+              <input ref={rRef} type="file" accept=".pdf" style={{display:'none'}} onChange={e=>onDrop(e,setResumeFile,setDragR,'resume')} />
               {resumeFile ? (
                 <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:13}}>
                   <span style={{fontSize:28}}>📄</span>
@@ -2275,9 +2294,9 @@ function UploadScreen({ onBack, onAnalyze }) {
             <div style={{...uploadDropZone(dragJ),padding:'20px'}}
               onDragOver={e=>{e.preventDefault();setDragJ(true)}}
               onDragLeave={()=>setDragJ(false)}
-              onDrop={e=>onDrop(e,setJdFile,setDragJ)}
+              onDrop={e=>onDrop(e,setJdFile,setDragJ,'jd')}
               onClick={()=>jRef.current?.click()}>
-              <input ref={jRef} type="file" accept=".pdf" style={{display:'none'}} onChange={e=>onDrop(e,setJdFile,setDragJ)} />
+              <input ref={jRef} type="file" accept=".pdf" style={{display:'none'}} onChange={e=>onDrop(e,setJdFile,setDragJ,'jd')} />
               {jdFile ? (
                 <div style={{display:'flex',alignItems:'center',gap:12}}>
                   <span style={{fontSize:22}}>📋</span>
@@ -2318,7 +2337,7 @@ function UploadScreen({ onBack, onAnalyze }) {
               <select
                 style={selectStyle(!stream)}
                 value={role}
-                onChange={e=>setRole(e.target.value)}
+                onChange={e=>onRoleChange(e.target.value)}
                 disabled={!stream}>
                 <option value="">{stream ? 'All Roles' : '— Select stream first —'}</option>
                 {roleOptions.map(x=><option key={x} value={x}>{x}</option>)}
@@ -2338,7 +2357,7 @@ function UploadScreen({ onBack, onAnalyze }) {
           </div>
 
           {/* ── CTA ── */}
-          <button disabled={!resumeFile || !stream} onClick={()=>onAnalyze({resumeFile,jdFile,industry,role,stream})}
+          <button disabled={!resumeFile || !stream} onClick={()=>{ track('analyze-clicked', { stream, industry: industry||'(any)', role: role||'(any)', hasJD: !!jdFile }); onAnalyze({resumeFile,jdFile,industry,role,stream}); }}
             className={resumeFile && stream ? 'btn-primary' : ''}
             style={{
               width:'100%', padding:'16px',
@@ -3824,8 +3843,20 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, [tab]);
 
+  // Fire once when the dashboard first opens after analysis completes
+  useEffect(() => {
+    track('analysis-completed', {
+      atsScore: results?.atsScore,
+      hasJD: !!results?.hasJD,
+      jdMatchPct: results?.jdMatch?.percentage ?? null,
+    });
+    track('dashboard-tab-view', { tab: 'Overview', initial: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleChat = useCallback(async () => {
     const msg = chatInput.trim(); if (!msg || chatLoading) return;
+    track('coach-message-sent', { length: msg.length });
     setChatInput('');
     const next = [...history, { role:'user', content:msg }];
     setHistory(next);
@@ -3839,8 +3870,10 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
       if (!msgs.length) return;
       const resp = await sendChat(msgs, results);
       setHistory(h => [...h, { role:'assistant', content:resp }]);
+      track('coach-reply-received');
     } catch(err) {
       setHistory(h => [...h, { role:'assistant', content:'Sorry, I encountered an error. Please try again.' }]);
+      track('coach-error');
     }
     setChatLoading(false);
   }, [chatInput, chatLoading, history, results]);
@@ -3893,14 +3926,14 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
             <span style={{ fontSize:16,fontWeight:700,color:scoreColor(results.atsScore),fontFamily:"'Playfair Display',serif" }}>{results.atsScore}</span>
             <span style={{ fontSize:11,color:T.muted }}>/ 100</span>
           </div>
-          <button className="btn-ghost" onClick={onReanalyze} style={{ padding:'7px 13px',fontSize:12 }}>🔄 Re-analyse</button>
+          <button className="btn-ghost" onClick={()=>{ track('dashboard-reanalyse'); onReanalyze(); }} style={{ padding:'7px 13px',fontSize:12 }}>🔄 Re-analyse</button>
         </div>
       </div>
 
       {/* ── Tab bar — fixed below top bar ── */}
       <div style={{ position:'fixed',top:54,left:0,right:0,zIndex:190,display:'flex',gap:0,borderBottom:`1px solid rgba(195,165,110,0.22)`,background:'rgba(253,248,240,0.88)',backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)',overflowX:'auto',padding:'0 18px',WebkitOverflowScrolling:'touch' }} className="riq-tabs-wrap">
         {TABS.map(t => (
-          <button key={t} className="tab-btn riq-tab-btn" onClick={()=>setTab(t)} style={{
+          <button key={t} className="tab-btn riq-tab-btn" onClick={()=>{ track('dashboard-tab-view', { tab: t }); setTab(t); }} style={{
             padding:'12px 16px', color: tab===t ? T.gold : T.muted,
             fontWeight: tab===t ? 600 : 400, fontSize:13, flexShrink:0,
             borderBottom:`2px solid ${tab===t ? T.gold : 'transparent'}`,
@@ -5736,6 +5769,7 @@ Return this EXACT JSON structure (empty string/array if info not available — n
    DOWNLOAD UTILITIES
 ──────────────────────────────────────────────────────────────── */
 async function downloadResumeAsPDF(elementId, candidateName) {
+  track('resume-download', { format: 'pdf' });
   if (!window.html2pdf) {
     await new Promise((resolve, reject) => {
       const script = document.createElement('script');
@@ -5762,6 +5796,7 @@ async function downloadResumeAsPDF(elementId, candidateName) {
    Bold (gradient header), Academic — using OOXML paragraph/table XML.
 ──────────────────────────────────────────────────────────────── */
 async function downloadResumeAsWord(data, tmpl, sections, pageMode = 'multi') {
+  track('resume-download', { format: 'docx', template: tmpl?.id || tmpl?.name || 'unknown' });
   if (!data) throw new Error('No resume data available.');
 
   // ── Load JSZip ──────────────────────────────────────────────
@@ -8335,6 +8370,7 @@ function _htmlToOoxmlBody(html, widthDxa) {
 
 // ── Assemble complete DOCX zip ────────────────────────────────
 async function downloadDittoCopyAsWord(html, candidateName = 'Resume') {
+  track('resume-download', { format: 'docx', mode: 'ditto-copy' });
   const safeName = (candidateName || 'Resume').replace(/\s+/g, '_');
 
   // Load JSZip
