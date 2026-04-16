@@ -6,6 +6,23 @@ import {
 } from "recharts";
 
 /* ─────────────────────────────────────────────
+   UMAMI ANALYTICS — custom event tracking
+   Safe no-op if umami script not yet loaded.
+───────────────────────────────────────────── */
+function track(event, data) {
+  try {
+    if (typeof window === 'undefined') return;
+    const u = window.umami;
+    if (!u) return;
+    if (typeof u.track === 'function') {
+      data ? u.track(event, data) : u.track(event);
+    } else if (typeof u === 'function') {
+      data ? u(event, data) : u(event);
+    }
+  } catch { /* ignore */ }
+}
+
+/* ─────────────────────────────────────────────
    CONSTANTS
 ───────────────────────────────────────────── */
 const STREAM_INDUSTRY_ROLE = {
