@@ -3919,7 +3919,7 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
       {/* ── Tab bar — fixed below top bar ── */}
       <div style={{ position:'fixed',top:54,left:0,right:0,zIndex:190,display:'flex',gap:0,borderBottom:`1px solid rgba(195,165,110,0.22)`,background:'rgba(253,248,240,0.88)',backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)',overflowX:'auto',padding:'0 18px',WebkitOverflowScrolling:'touch' }} className="riq-tabs-wrap">
         {TABS.map(t => (
-          <button key={t} className="tab-btn riq-tab-btn" onClick={()=>setTab(t)} style={{
+          <button key={t} className="tab-btn riq-tab-btn" onClick={()=>{ track('dashboard-tab-view', { tab: t }); setTab(t); }} style={{
             padding:'12px 16px', color: tab===t ? T.gold : T.muted,
             fontWeight: tab===t ? 600 : 400, fontSize:13, flexShrink:0,
             borderBottom:`2px solid ${tab===t ? T.gold : 'transparent'}`,
