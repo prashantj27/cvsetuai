@@ -4481,6 +4481,7 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
               </GlassCard>
             </div>
           </div>
+          </TabErrorBoundary>
         )}
 
         {/* ════════ ANALYSIS ════════ */}
