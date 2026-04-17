@@ -4045,6 +4045,7 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
 
         {/* ════════ OVERVIEW ════════ */}
         {tab === 'Overview' && (
+          <TabErrorBoundary tab="Overview" onReanalyze={onReanalyze}>
           <div style={{ display:'flex',flexDirection:'column',gap:20 }}>
             {/* Quick stats strip */}
             <div className="riq-stats-strip" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12 }}>
@@ -4257,10 +4258,12 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
               </GlassCard>
             )}
           </div>
+          </TabErrorBoundary>
         )}
 
         {/* ════════ SCORES ════════ */}
         {tab === 'Scores' && (
+          <TabErrorBoundary tab="Scores" onReanalyze={onReanalyze}>
           <div style={{ display:'flex',flexDirection:'column',gap:20 }}>
             <div className="riq-radar-grid riq-2col" style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:20 }}>
               <GlassCard>
@@ -4369,10 +4372,12 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
               })()}
             </GlassCard>
           </div>
+          </TabErrorBoundary>
         )}
 
         {/* ════════ KEYWORDS ════════ */}
         {tab === 'Keywords' && (
+          <TabErrorBoundary tab="Keywords" onReanalyze={onReanalyze}>
           <div style={{ display:'flex',flexDirection:'column',gap:20 }}>
 
             {/* ── JD Top Missing Keywords — only shown when JD uploaded ── */}
@@ -4548,7 +4553,9 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
 
         {/* ════════ YOUR RESUME ════════ */}
         {tab === 'Your Resume' && (
-          <AnnotatedPDFViewer resumeFile={resumeFile} results={results} />
+          <TabErrorBoundary tab="Your Resume" onReanalyze={onReanalyze}>
+            <AnnotatedPDFViewer resumeFile={resumeFile} results={results} />
+          </TabErrorBoundary>
         )}
 
         {/* ════════ JD MATCH ════════ */}
