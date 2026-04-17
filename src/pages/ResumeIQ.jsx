@@ -4559,7 +4559,9 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
         )}
 
         {/* ════════ JD MATCH ════════ */}
-        {tab === 'JD Match' && results.hasJD && results.jdMatch && (() => {
+        {tab === 'JD Match' && results.hasJD && results.jdMatch && (
+          <TabErrorBoundary tab="JD Match" onReanalyze={onReanalyze}>
+            {(() => {
           const jd = results.jdMatch;
           const pct = jd.percentage || 0;
           const pColor = scoreColor(pct);
@@ -4727,9 +4729,12 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
             </div>
           );
         })()}
+          </TabErrorBoundary>
+        )}
 
         {/* ════════ AI COACH ════════ */}
         {tab === 'AI Coach' && (
+          <TabErrorBoundary tab="AI Coach" onReanalyze={onReanalyze}>
           <div className="glass-card-deep riq-chat-height" style={{ padding:0,overflow:'hidden',height:590,display:'flex',flexDirection:'column' }}>
             {/* Header */}
             <div style={{ padding:'16px 20px',borderBottom:`1px solid rgba(195,165,110,0.22)`,display:'flex',gap:13,alignItems:'center',background:'rgba(255,255,255,0.55)' }}>
@@ -4800,10 +4805,12 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
               }}>Send →</button>
             </div>
           </div>
+          </TabErrorBoundary>
         )}
 
         {/* ════════ PDF REPORT ════════ */}
         {tab === 'PDF Report' && (
+          <TabErrorBoundary tab="PDF Report" onReanalyze={onReanalyze}>
           <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
             <GlassCard deep>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:14 }}>
@@ -5007,6 +5014,7 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
               </GlassCard>
             </div>
           </div>
+          </TabErrorBoundary>
         )}
 
       </div>
