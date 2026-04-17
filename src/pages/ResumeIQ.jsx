@@ -4045,6 +4045,7 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
 
         {/* ════════ OVERVIEW ════════ */}
         {tab === 'Overview' && (
+          <TabErrorBoundary tab="Overview" onReanalyze={onReanalyze}>
           <div style={{ display:'flex',flexDirection:'column',gap:20 }}>
             {/* Quick stats strip */}
             <div className="riq-stats-strip" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12 }}>
@@ -4257,10 +4258,12 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
               </GlassCard>
             )}
           </div>
+          </TabErrorBoundary>
         )}
 
         {/* ════════ SCORES ════════ */}
         {tab === 'Scores' && (
+          <TabErrorBoundary tab="Scores" onReanalyze={onReanalyze}>
           <div style={{ display:'flex',flexDirection:'column',gap:20 }}>
             <div className="riq-radar-grid riq-2col" style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:20 }}>
               <GlassCard>
@@ -4369,10 +4372,12 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
               })()}
             </GlassCard>
           </div>
+          </TabErrorBoundary>
         )}
 
         {/* ════════ KEYWORDS ════════ */}
         {tab === 'Keywords' && (
+          <TabErrorBoundary tab="Keywords" onReanalyze={onReanalyze}>
           <div style={{ display:'flex',flexDirection:'column',gap:20 }}>
 
             {/* ── JD Top Missing Keywords — only shown when JD uploaded ── */}
@@ -4476,6 +4481,7 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
               </GlassCard>
             </div>
           </div>
+          </TabErrorBoundary>
         )}
 
         {/* ════════ ANALYSIS ════════ */}
@@ -4548,11 +4554,15 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
 
         {/* ════════ YOUR RESUME ════════ */}
         {tab === 'Your Resume' && (
-          <AnnotatedPDFViewer resumeFile={resumeFile} results={results} />
+          <TabErrorBoundary tab="Your Resume" onReanalyze={onReanalyze}>
+            <AnnotatedPDFViewer resumeFile={resumeFile} results={results} />
+          </TabErrorBoundary>
         )}
 
         {/* ════════ JD MATCH ════════ */}
-        {tab === 'JD Match' && results.hasJD && results.jdMatch && (() => {
+        {tab === 'JD Match' && results.hasJD && results.jdMatch && (
+          <TabErrorBoundary tab="JD Match" onReanalyze={onReanalyze}>
+            {(() => {
           const jd = results.jdMatch;
           const pct = jd.percentage || 0;
           const pColor = scoreColor(pct);
@@ -4720,9 +4730,12 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
             </div>
           );
         })()}
+          </TabErrorBoundary>
+        )}
 
         {/* ════════ AI COACH ════════ */}
         {tab === 'AI Coach' && (
+          <TabErrorBoundary tab="AI Coach" onReanalyze={onReanalyze}>
           <div className="glass-card-deep riq-chat-height" style={{ padding:0,overflow:'hidden',height:590,display:'flex',flexDirection:'column' }}>
             {/* Header */}
             <div style={{ padding:'16px 20px',borderBottom:`1px solid rgba(195,165,110,0.22)`,display:'flex',gap:13,alignItems:'center',background:'rgba(255,255,255,0.55)' }}>
@@ -4793,10 +4806,12 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
               }}>Send →</button>
             </div>
           </div>
+          </TabErrorBoundary>
         )}
 
         {/* ════════ PDF REPORT ════════ */}
         {tab === 'PDF Report' && (
+          <TabErrorBoundary tab="PDF Report" onReanalyze={onReanalyze}>
           <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
             <GlassCard deep>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:14 }}>
@@ -5000,6 +5015,7 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
               </GlassCard>
             </div>
           </div>
+          </TabErrorBoundary>
         )}
 
       </div>
