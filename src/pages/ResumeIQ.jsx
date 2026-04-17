@@ -6,6 +6,42 @@ import {
 } from "recharts";
 
 /* ─────────────────────────────────────────────
+   ERROR BOUNDARY — prevents single-component
+   crashes from blanking the whole dashboard tab.
+───────────────────────────────────────────── */
+class TabErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, info) {
+    console.error('[CVsetuAI] Tab render error:', error, info);
+    try { track('dashboard-tab-error', { tab: this.props.tab || 'unknown', message: String(error?.message || error).slice(0, 200) }); } catch {}
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding:'28px 24px', background:'rgba(255,245,240,0.6)', border:'1px solid rgba(184,92,82,0.3)', borderRadius:14, textAlign:'center', fontFamily:"'Jost',sans-serif" }}>
+          <div style={{ fontSize:32, marginBottom:10 }}>⚠️</div>
+          <div style={{ fontSize:15, fontWeight:600, color:'#b85c52', marginBottom:6 }}>Couldn't load this section</div>
+          <div style={{ fontSize:12, color:'#7a5a3a', marginBottom:14, maxWidth:480, margin:'0 auto 14px' }}>
+            {String(this.state.error?.message || 'Unknown error').slice(0, 220)}
+          </div>
+          <button
+            onClick={() => { this.setState({ hasError: false, error: null }); this.props.onReanalyze?.(); }}
+            style={{ padding:'8px 18px', borderRadius:20, background:'rgba(176,125,42,0.85)', color:'#fff', border:'none', fontSize:12, fontWeight:600, cursor:'pointer' }}
+          >🔄 Re-analyse Resume</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+/* ─────────────────────────────────────────────
    UMAMI ANALYTICS — custom event tracking
    Safe no-op if umami script not yet loaded.
 ───────────────────────────────────────────── */
