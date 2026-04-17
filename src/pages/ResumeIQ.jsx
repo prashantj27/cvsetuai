@@ -6,6 +6,42 @@ import {
 } from "recharts";
 
 /* ─────────────────────────────────────────────
+   ERROR BOUNDARY — prevents single-component
+   crashes from blanking the whole dashboard tab.
+───────────────────────────────────────────── */
+class TabErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, info) {
+    console.error('[CVsetuAI] Tab render error:', error, info);
+    try { track('dashboard-tab-error', { tab: this.props.tab || 'unknown', message: String(error?.message || error).slice(0, 200) }); } catch {}
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding:'28px 24px', background:'rgba(255,245,240,0.6)', border:'1px solid rgba(184,92,82,0.3)', borderRadius:14, textAlign:'center', fontFamily:"'Jost',sans-serif" }}>
+          <div style={{ fontSize:32, marginBottom:10 }}>⚠️</div>
+          <div style={{ fontSize:15, fontWeight:600, color:'#b85c52', marginBottom:6 }}>Couldn't load this section</div>
+          <div style={{ fontSize:12, color:'#7a5a3a', marginBottom:14, maxWidth:480, margin:'0 auto 14px' }}>
+            {String(this.state.error?.message || 'Unknown error').slice(0, 220)}
+          </div>
+          <button
+            onClick={() => { this.setState({ hasError: false, error: null }); this.props.onReanalyze?.(); }}
+            style={{ padding:'8px 18px', borderRadius:20, background:'rgba(176,125,42,0.85)', color:'#fff', border:'none', fontSize:12, fontWeight:600, cursor:'pointer' }}
+          >🔄 Re-analyse Resume</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+/* ─────────────────────────────────────────────
    UMAMI ANALYTICS — custom event tracking
    Safe no-op if umami script not yet loaded.
 ───────────────────────────────────────────── */
@@ -3067,9 +3103,10 @@ QUALITY:
         </div>
       )}
 
-      {/* Line cards — key on improved so card re-renders when refreshed */}
-      {items.map((item, i) => (
-        <LineItemCard key={`${i}-${item.improved?.slice(0,20)}`} item={item} />
+      {/* Line cards — key on improved so card re-renders when refreshed.
+          Filter out items missing original text — they'd cause NaN math in LineItemCard. */}
+      {items.filter(it => it && typeof it.original === 'string' && it.original.trim().length > 0).map((item, i) => (
+        <LineItemCard key={`${i}-${(item.improved||'').slice(0,20)}`} item={item} />
       ))}
     </div>
   );
@@ -4443,53 +4480,69 @@ function ResultsDashboard({ results, resumeFile, onBack, onReanalyze }) {
 
         {/* ════════ ANALYSIS ════════ */}
         {tab === 'Analysis' && (
-          <div style={{ display:'flex',flexDirection:'column',gap:20 }}>
+          <TabErrorBoundary tab="Analysis" onReanalyze={onReanalyze}>
+            <div style={{ display:'flex',flexDirection:'column',gap:20 }}>
 
-            <GlassCard>
-              <SectionHead icon="✒️" title="Line-by-Line Resume Analysis" sub={`Every line across all resume sections rewritten for maximum ATS impact and recruiter appeal. ${results.lineByLineAnalysis?.length || 0} items analysed.`} />
-              {(() => {
-                const allItems = results.lineByLineAnalysis || [];
-                // Filter out education-grade, skills-list, coursework lines
-                const items = allItems.filter(item => !isSkippableSection(item.section, item.original));
-                const groups = {};
-                items.forEach(item => {
-                  const sec = item.section || 'General';
-                  if (!groups[sec]) groups[sec] = [];
-                  groups[sec].push(item);
-                });
-                const getSectionIcon = (sec) => {
-                  const s = sec.toLowerCase();
-                  if (s.includes('summary')) return '📝';
-                  if (s.includes('skill')) return '⚙️';
-                  if (s.includes('education')) return '🎓';
-                  if (s.includes('project')) return '🚀';
-                  if (s.includes('certif')) return '🏅';
-                  if (s.includes('award') || s.includes('honour') || s.includes('honor')) return '🏆';
-                  if (s.includes('extra') || s.includes('activity') || s.includes('volunteer')) return '🌟';
-                  if (s.includes('work') || s.includes('experience') || s.includes('employment')) return '💼';
-                  return '📄';
-                };
-                const skipped = allItems.length - items.length;
-                return (
-                  <>
-                    {skipped > 0 && (
-                      <div style={{ fontSize:12, color:T.muted, fontFamily:"'Jost',sans-serif", marginBottom:14, padding:'8px 14px', background:'rgba(195,165,110,0.08)', border:'1px solid rgba(195,165,110,0.2)', borderRadius:10 }}>
-                        ℹ️ {skipped} line{skipped !== 1 ? 's' : ''} skipped (education grades, skills lists, coursework — not meaningful to rewrite)
+              <GlassCard>
+                <SectionHead icon="✒️" title="Line-by-Line Resume Analysis" sub={`Every line across all resume sections rewritten for maximum ATS impact and recruiter appeal. ${results.lineByLineAnalysis?.length || 0} items analysed.`} />
+                {(() => {
+                  const allItemsRaw = results.lineByLineAnalysis || [];
+                  // Defensive: drop items that are not objects or have no usable original text
+                  const allItems = allItemsRaw.filter(it => it && typeof it === 'object' && typeof it.original === 'string' && it.original.trim().length > 0);
+                  // Filter out education-grade, skills-list, coursework lines
+                  const items = allItems.filter(item => !isSkippableSection(item.section, item.original));
+
+                  if (items.length === 0) {
+                    return (
+                      <div style={{ padding:'24px 20px', textAlign:'center', fontFamily:"'Jost',sans-serif" }}>
+                        <div style={{ fontSize:32, marginBottom:10 }}>📭</div>
+                        <div style={{ fontSize:14, color:T.text, marginBottom:6, fontWeight:600 }}>No line-by-line items available</div>
+                        <div style={{ fontSize:12, color:T.muted, marginBottom:14 }}>The AI couldn't extract individual lines from this resume. Please re-analyse.</div>
+                        <button onClick={()=>{ track('analysis-empty-reanalyse'); onReanalyze(); }} style={{ padding:'8px 18px', borderRadius:20, background:T.gold, color:'#fff', border:'none', fontSize:12, fontWeight:600, cursor:'pointer' }}>🔄 Re-analyse</button>
                       </div>
-                    )}
-                    {Object.entries(groups).map(([section, sectionItems]) => (
-                      <SectionGroup
-                        key={section}
-                        section={section}
-                        initialItems={sectionItems}
-                        icon={getSectionIcon(section)}
-                      />
-                    ))}
-                  </>
-                );
-              })()}
-            </GlassCard>
-          </div>
+                    );
+                  }
+
+                  const groups = {};
+                  items.forEach(item => {
+                    const sec = item.section || 'General';
+                    if (!groups[sec]) groups[sec] = [];
+                    groups[sec].push(item);
+                  });
+                  const getSectionIcon = (sec) => {
+                    const s = sec.toLowerCase();
+                    if (s.includes('summary')) return '📝';
+                    if (s.includes('skill')) return '⚙️';
+                    if (s.includes('education')) return '🎓';
+                    if (s.includes('project')) return '🚀';
+                    if (s.includes('certif')) return '🏅';
+                    if (s.includes('award') || s.includes('honour') || s.includes('honor')) return '🏆';
+                    if (s.includes('extra') || s.includes('activity') || s.includes('volunteer')) return '🌟';
+                    if (s.includes('work') || s.includes('experience') || s.includes('employment')) return '💼';
+                    return '📄';
+                  };
+                  const skipped = allItems.length - items.length;
+                  return (
+                    <>
+                      {skipped > 0 && (
+                        <div style={{ fontSize:12, color:T.muted, fontFamily:"'Jost',sans-serif", marginBottom:14, padding:'8px 14px', background:'rgba(195,165,110,0.08)', border:'1px solid rgba(195,165,110,0.2)', borderRadius:10 }}>
+                          ℹ️ {skipped} line{skipped !== 1 ? 's' : ''} skipped (education grades, skills lists, coursework — not meaningful to rewrite)
+                        </div>
+                      )}
+                      {Object.entries(groups).map(([section, sectionItems]) => (
+                        <SectionGroup
+                          key={section}
+                          section={section}
+                          initialItems={sectionItems}
+                          icon={getSectionIcon(section)}
+                        />
+                      ))}
+                    </>
+                  );
+                })()}
+              </GlassCard>
+            </div>
+          </TabErrorBoundary>
         )}
 
 
