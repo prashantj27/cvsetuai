@@ -3103,9 +3103,10 @@ QUALITY:
         </div>
       )}
 
-      {/* Line cards — key on improved so card re-renders when refreshed */}
-      {items.map((item, i) => (
-        <LineItemCard key={`${i}-${item.improved?.slice(0,20)}`} item={item} />
+      {/* Line cards — key on improved so card re-renders when refreshed.
+          Filter out items missing original text — they'd cause NaN math in LineItemCard. */}
+      {items.filter(it => it && typeof it.original === 'string' && it.original.trim().length > 0).map((item, i) => (
+        <LineItemCard key={`${i}-${(item.improved||'').slice(0,20)}`} item={item} />
       ))}
     </div>
   );
