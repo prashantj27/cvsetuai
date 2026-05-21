@@ -7,8 +7,8 @@ const corsHeaders = {
 
 /* ── Simple in-memory rate limiter (per-instance) ─────────────── */
 const ipBuckets = new Map<string, { count: number; resetAt: number }>();
-const RATE_WINDOW_MS = 60_000; // 1 minute
-const RATE_LIMIT = 30;         // max 30 requests per IP per minute
+const RATE_WINDOW_MS = 60_000;
+const RATE_LIMIT = 30;
 
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
@@ -21,7 +21,6 @@ function isRateLimited(ip: string): boolean {
   return bucket.count > RATE_LIMIT;
 }
 
-// Cleanup stale buckets every 5 minutes
 setInterval(() => {
   const now = Date.now();
   for (const [ip, b] of ipBuckets) {
@@ -29,18 +28,13 @@ setInterval(() => {
   }
 }, 300_000);
 
-/* ── Retry wrapper for Gemini API ─────────────────────────────── */
-async function fetchGeminiWithRetry(url: string, body: string, retries = 2): Promise<Response> {
+async function fetchAIWithRetry(url: string, headers: Record<string, string>, body: string, retries = 2): Promise<Response> {
   for (let attempt = 0; attempt <= retries; attempt++) {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body,
-    });
+    const res = await fetch(url, { method: "POST", headers, body });
     if (res.ok) return res;
     if (res.status === 429 && attempt < retries) {
       const delay = 2000 * Math.pow(2, attempt) + Math.random() * 1000;
-      console.warn(`[resume-analyze] Gemini 429 — retry ${attempt + 1} in ${Math.round(delay)}ms`);
+      console.warn(`[resume-analyze] AI 429 — retry ${attempt + 1} in ${Math.round(delay)}ms`);
       await new Promise(r => setTimeout(r, delay));
       continue;
     }
@@ -48,9 +42,9 @@ async function fetchGeminiWithRetry(url: string, body: string, retries = 2): Pro
       await new Promise(r => setTimeout(r, 1500 * Math.pow(2, attempt)));
       continue;
     }
-    return res; // non-retryable error
+    return res;
   }
-  throw new Error("Gemini API unreachable after retries");
+  throw new Error("AI Gateway unreachable after retries");
 }
 
 serve(async (req) => {
@@ -58,7 +52,6 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Rate limiting
   const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
   if (isRateLimited(clientIp)) {
     return new Response(JSON.stringify({ error: "Too many requests. Please wait a moment." }), {
@@ -69,36 +62,44 @@ serve(async (req) => {
 
   try {
     const { prompt, maxTokens = 8192, imageBase64, systemPrompt } = await req.json();
-    const GOOGLE_GEMINI_API_KEY = Deno.env.get("GOOGLE_GEMINI_API_KEY");
-    if (!GOOGLE_GEMINI_API_KEY) throw new Error("GOOGLE_GEMINI_API_KEY is not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     console.log(`[resume-analyze] prompt:${prompt?.length} maxTokens:${maxTokens} hasImage:${!!imageBase64}`);
 
-    const parts: any[] = [];
-    if (imageBase64) {
-      parts.push({ inlineData: { mimeType: "image/jpeg", data: imageBase64 } });
-    }
-    
-    const fullPrompt = systemPrompt 
-      ? `${systemPrompt}\n\n${prompt}`
-      : `You are an elite ATS algorithm and McKinsey/Google senior recruiter. You MUST return ONLY valid JSON. No markdown code fences, no backticks, no commentary, no explanation — output MUST start with { and end with }. This is critical.\n\n${prompt}`;
-    
-    parts.push({ text: fullPrompt });
+    const systemMessage = systemPrompt
+      || "You are an elite ATS algorithm and McKinsey/Google senior recruiter. You MUST return ONLY valid JSON. No markdown code fences, no backticks, no commentary, no explanation — output MUST start with { and end with }. This is critical.";
 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${GOOGLE_GEMINI_API_KEY}`;
+    const userContent: any[] = [{ type: "text", text: prompt }];
+    if (imageBase64) {
+      userContent.unshift({
+        type: "image_url",
+        image_url: { url: `data:image/jpeg;base64,${imageBase64}` },
+      });
+    }
+
     const bodyStr = JSON.stringify({
-      contents: [{ role: "user", parts }],
-      generationConfig: {
-        maxOutputTokens: Math.min(maxTokens, 65536),
-        temperature: 0.7,
-      },
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        { role: "system", content: systemMessage },
+        { role: "user", content: userContent },
+      ],
+      max_tokens: Math.min(maxTokens, 65536),
+      temperature: 0.7,
     });
 
-    const response = await fetchGeminiWithRetry(apiUrl, bodyStr);
+    const response = await fetchAIWithRetry(
+      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+      },
+      bodyStr,
+    );
 
     if (!response.ok) {
       const errBody = await response.text().catch(() => 'Unknown');
-      console.error(`[resume-analyze] Gemini API error: ${response.status}`, errBody.slice(0, 500));
+      console.error(`[resume-analyze] AI Gateway error: ${response.status}`, errBody.slice(0, 500));
 
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limited. Please try again in a moment." }), {
@@ -106,12 +107,18 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "15" },
         });
       }
-      throw new Error(`Gemini API error ${response.status}: ${errBody.slice(0, 200)}`);
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits to your Lovable workspace." }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      throw new Error(`AI Gateway error ${response.status}: ${errBody.slice(0, 200)}`);
     }
 
     const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    const finishReason = data.candidates?.[0]?.finishReason;
+    const text = data.choices?.[0]?.message?.content || "";
+    const finishReason = data.choices?.[0]?.finish_reason;
 
     console.log(`[resume-analyze] Response len:${text.length} finishReason:${finishReason}`);
 
