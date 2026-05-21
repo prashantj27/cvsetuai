@@ -573,6 +573,73 @@ async function callClaude(userPrompt, maxTokens = 8192) {
    Call A (~20s): scores, keywords, issues, meta
    Call B (~40s): exhaustive line-by-line rewrites
 ─────────────────────────────────────────────*/
+
+/* ── line rewrite validation helpers (module-level) ───────────────────────────── */
+function canonicalizeLine(text) {
+  return (text || '')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[–—‒−]/g, '-')
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function tokenizeLine(text) {
+  return canonicalizeLine(text).split(' ').filter(Boolean);
+}
+
+function jaccardSimilarity(tokensA, tokensB) {
+  const setA = new Set(tokensA);
+  const setB = new Set(tokensB);
+  if (!setA.size && !setB.size) return 1;
+  let intersection = 0;
+  for (const token of setA) if (setB.has(token)) intersection++;
+  const union = new Set([...setA, ...setB]).size;
+  return union ? intersection / union : 0;
+}
+
+function isMeaningfullyDifferentLine(original, candidate) {
+  const normOrig = canonicalizeLine(original);
+  const normCand = canonicalizeLine(candidate);
+  if (!normCand) return false;
+  if (normOrig === normCand) return false;
+
+  const origTokens = tokenizeLine(original);
+  const candTokens = tokenizeLine(candidate);
+  if (!origTokens.length || !candTokens.length) return normOrig !== normCand;
+
+  const sharedPrefix = origTokens.filter((token, idx) => candTokens[idx] === token).length;
+  const leadOrig = origTokens.slice(0, 3).join(' ');
+  const leadCand = candTokens.slice(0, 3).join(' ');
+  const similarity = jaccardSimilarity(origTokens, candTokens);
+  const charDelta = Math.abs(normCand.length - normOrig.length);
+
+  if (leadOrig && leadOrig === leadCand) return false;
+  if (sharedPrefix >= Math.min(4, origTokens.length, candTokens.length)) return false;
+  if (similarity >= 0.9) return false;
+  if (similarity >= 0.82 && charDelta <= 6) return false;
+
+  return true;
+}
+
+/* ── repairLine: module-level — validates improved line length constraints (3%-10%) ── */
+/* Returns the valid improved text, or null if invalid (so caller can trigger regen) */
+function repairLine(original, improved, opts = {}) {
+  const origLen = effectiveLength(original);
+  const minLen  = opts.minLen ?? Math.ceil(origLen * 1.03);
+  const maxLen  = opts.maxLen ?? Math.ceil(origLen * 1.10);
+  const t = (improved || '').trim();
+  if (!t) return null;
+  if (!isMeaningfullyDifferentLine(original, t)) return null;
+  const tLen = effectiveLength(t);
+  if (tLen < minLen) return null;
+  if (tLen > maxLen) return null;
+  return t;
+}
+
 async function runAnalysis({ resumeText, jdText, industry, role, stream }) {
 
   // ── Stream-specific role list for Multi-Role ATS Fit ────────────────────
@@ -1215,72 +1282,6 @@ Return ONLY this JSON:
   ]
 }`;
 
-
-/* ── line rewrite validation helpers ───────────────────────────── */
-function canonicalizeLine(text) {
-  return (text || '')
-    .toLowerCase()
-    .normalize('NFKD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[–—‒−]/g, '-')
-    .replace(/&/g, ' and ')
-    .replace(/[^a-z0-9\s-]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function tokenizeLine(text) {
-  return canonicalizeLine(text).split(' ').filter(Boolean);
-}
-
-function jaccardSimilarity(tokensA, tokensB) {
-  const setA = new Set(tokensA);
-  const setB = new Set(tokensB);
-  if (!setA.size && !setB.size) return 1;
-  let intersection = 0;
-  for (const token of setA) if (setB.has(token)) intersection++;
-  const union = new Set([...setA, ...setB]).size;
-  return union ? intersection / union : 0;
-}
-
-function isMeaningfullyDifferentLine(original, candidate) {
-  const normOrig = canonicalizeLine(original);
-  const normCand = canonicalizeLine(candidate);
-  if (!normCand) return false;
-  if (normOrig === normCand) return false;
-
-  const origTokens = tokenizeLine(original);
-  const candTokens = tokenizeLine(candidate);
-  if (!origTokens.length || !candTokens.length) return normOrig !== normCand;
-
-  const sharedPrefix = origTokens.filter((token, idx) => candTokens[idx] === token).length;
-  const leadOrig = origTokens.slice(0, 3).join(' ');
-  const leadCand = candTokens.slice(0, 3).join(' ');
-  const similarity = jaccardSimilarity(origTokens, candTokens);
-  const charDelta = Math.abs(normCand.length - normOrig.length);
-
-  if (leadOrig && leadOrig === leadCand) return false;
-  if (sharedPrefix >= Math.min(4, origTokens.length, candTokens.length)) return false;
-  if (similarity >= 0.9) return false;
-  if (similarity >= 0.82 && charDelta <= 6) return false;
-
-  return true;
-}
-
-/* ── repairLine: module-level — validates improved line length constraints (3%-10%) ── */
-/* Returns the valid improved text, or null if invalid (so caller can trigger regen) */
-function repairLine(original, improved, opts = {}) {
-  const origLen = effectiveLength(original);
-  const minLen  = opts.minLen ?? Math.ceil(origLen * 1.03);
-  const maxLen  = opts.maxLen ?? Math.ceil(origLen * 1.10);
-  const t = (improved || '').trim();
-  if (!t) return null;
-  if (!isMeaningfullyDifferentLine(original, t)) return null;
-  const tLen = effectiveLength(t);
-  if (tLen < minLen) return null;
-  if (tLen > maxLen) return null;
-  return t;
-}
 
   // promptC — JD match scores, skills, gaps, keywords
   const promptC = jdText ? `You are an expert ATS recruiter. Apply the EXACT formula below to score resume vs JD. Return ONLY valid JSON — no markdown, no code fences.
