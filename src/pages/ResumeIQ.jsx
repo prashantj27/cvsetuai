@@ -1684,19 +1684,37 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
   const quantPatternGlobal = /\d+[\.,]?\d*\s*(%|x|×|cr|lakh|million|billion|k\b|mn|bn|hrs?|days?|weeks?|months?|years?|people|members?|team|users?|clients?|deals?|projects?)/gi;
   const globalQuantHits = (resumeText.match(quantPatternGlobal) || []).length;
   const jsOverallAch = Math.min(globalQuantHits * 12, 100);
-  // Relaxed baseline: anchor at 65 instead of 60, give more weight to AI score
-  const jsOverallEst = Math.round(jsOverallKw * 0.28 + jsOverallAch * 0.18 + 65 * 0.54);
-  
-  let calibratedAtsScore = resultA.atsScore || 60;
-  // Softer blending: only pull down when AI is significantly above JS estimate
-  if (calibratedAtsScore > jsOverallEst + 30) {
-    calibratedAtsScore = Math.round(jsOverallEst * 0.25 + calibratedAtsScore * 0.75);
-  }
-  // Relaxed hard caps (+8-10 pts each tier)
+
+  // Additional resume-specific signals so different resumes produce different scores
+  const bulletCount = (resumeText.match(/^[\s]*[-•▸►▪]/gm) || []).length;
+  const wordCount = (resumeText.match(/\b[\w'-]+\b/g) || []).length;
+  const sectionHits = ['experience','education','skills','project','certification','achievement','summary']
+    .filter(s => resumeLower.includes(s)).length;
+  const lengthSignal = Math.min(100, Math.max(20, Math.round((wordCount / 600) * 100))); // ~600 words = ideal
+  const bulletSignal = Math.min(100, bulletCount * 6);
+  const structureSignal = Math.min(100, sectionHits * 14 + 20);
+
+  // JS-side estimate now driven by THIS resume's signals (no fixed anchor dominating)
+  const jsOverallEst = Math.round(
+    jsOverallKw * 0.32 +
+    jsOverallAch * 0.22 +
+    bulletSignal * 0.10 +
+    lengthSignal * 0.10 +
+    structureSignal * 0.10 +
+    55 * 0.16  // small floor only
+  );
+
+  // Blend AI score with JS estimate so resume-level variation always shows through
+  let calibratedAtsScore = resultA.atsScore || jsOverallEst;
+  calibratedAtsScore = Math.round(calibratedAtsScore * 0.55 + jsOverallEst * 0.45);
+
+  // Hard caps based on actual role-keyword evidence
   if (jsOverallHits < 12) calibratedAtsScore = Math.min(calibratedAtsScore, 86);
   if (jsOverallHits < 7)  calibratedAtsScore = Math.min(calibratedAtsScore, 76);
   if (jsOverallHits < 4)  calibratedAtsScore = Math.min(calibratedAtsScore, 62);
-  let calibratedRecruiterScore = resultA.recruiterScore || 60;
+  calibratedAtsScore = Math.max(20, Math.min(100, calibratedAtsScore));
+
+  let calibratedRecruiterScore = resultA.recruiterScore || calibratedAtsScore;
   if (calibratedRecruiterScore > calibratedAtsScore + 15) {
     calibratedRecruiterScore = calibratedAtsScore + Math.round((calibratedRecruiterScore - calibratedAtsScore) * 0.5);
   }
