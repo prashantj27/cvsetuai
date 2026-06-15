@@ -437,7 +437,9 @@ async function extractPDFText(file) {
   const buf = await file.arrayBuffer();
   const pdf = await window.pdfjsLib.getDocument({ data: buf }).promise;
   let out = '';
-  for (let i = 1; i <= Math.min(pdf.numPages, 5); i++) {
+  // Extract ALL pages so longer resumes get genuinely-different signals
+  // (cap retained at 10 to avoid pathological inputs).
+  for (let i = 1; i <= Math.min(pdf.numPages, 10); i++) {
     const page = await pdf.getPage(i);
     const ct   = await page.getTextContent();
     out += ct.items.map(x => x.str).join(' ') + '\n';
