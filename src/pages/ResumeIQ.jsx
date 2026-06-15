@@ -437,7 +437,9 @@ async function extractPDFText(file) {
   const buf = await file.arrayBuffer();
   const pdf = await window.pdfjsLib.getDocument({ data: buf }).promise;
   let out = '';
-  for (let i = 1; i <= Math.min(pdf.numPages, 5); i++) {
+  // Extract ALL pages so longer resumes get genuinely-different signals
+  // (cap retained at 10 to avoid pathological inputs).
+  for (let i = 1; i <= Math.min(pdf.numPages, 10); i++) {
     const page = await pdf.getPage(i);
     const ct   = await page.getTextContent();
     out += ct.items.map(x => x.str).join(' ') + '\n';
@@ -865,7 +867,17 @@ async function runAnalysis({ resumeText, jdText, industry, role, stream }) {
     if (!combined.map(k=>k.toLowerCase()).includes(t.toLowerCase())) combined.push(t);
   }
 
+  // Per-resume fingerprint — varies prompt by content so identical-looking
+  // requests for different resumes never collapse to a cached AI response.
+  let _fp = 0;
+  for (let i = 0; i < resumeText.length; i++) { _fp = ((_fp << 5) - _fp + resumeText.charCodeAt(i)) | 0; }
+  const resumeFingerprint = `RID-${Math.abs(_fp).toString(36)}-${resumeText.length}w`;
+
   const promptA = `You are an elite ATS scoring engine and senior recruiter. Analyse ONLY the resume below. Return ONLY valid JSON, no markdown.
+
+RESUME FINGERPRINT (internal id, do not echo): ${resumeFingerprint}
+SCORES MUST BE DERIVED FROM THIS SPECIFIC RESUME'S CONTENT. Do not reuse a default or template score — every score must reflect the actual bullets, keywords, and structure of THIS resume.
+
 
 CRITICAL CALIBRATION — READ BEFORE SCORING:
 An AVERAGE resume from a decent college/company should score 65–75 overall.
@@ -1682,19 +1694,37 @@ RULES: All 8 items must have non-empty "action" fields. High priority = JD expli
   const quantPatternGlobal = /\d+[\.,]?\d*\s*(%|x|×|cr|lakh|million|billion|k\b|mn|bn|hrs?|days?|weeks?|months?|years?|people|members?|team|users?|clients?|deals?|projects?)/gi;
   const globalQuantHits = (resumeText.match(quantPatternGlobal) || []).length;
   const jsOverallAch = Math.min(globalQuantHits * 12, 100);
-  // Relaxed baseline: anchor at 65 instead of 60, give more weight to AI score
-  const jsOverallEst = Math.round(jsOverallKw * 0.28 + jsOverallAch * 0.18 + 65 * 0.54);
-  
-  let calibratedAtsScore = resultA.atsScore || 60;
-  // Softer blending: only pull down when AI is significantly above JS estimate
-  if (calibratedAtsScore > jsOverallEst + 30) {
-    calibratedAtsScore = Math.round(jsOverallEst * 0.25 + calibratedAtsScore * 0.75);
-  }
-  // Relaxed hard caps (+8-10 pts each tier)
+
+  // Additional resume-specific signals so different resumes produce different scores
+  const bulletCount = (resumeText.match(/^[\s]*[-•▸►▪]/gm) || []).length;
+  const wordCount = (resumeText.match(/\b[\w'-]+\b/g) || []).length;
+  const sectionHits = ['experience','education','skills','project','certification','achievement','summary']
+    .filter(s => resumeLower.includes(s)).length;
+  const lengthSignal = Math.min(100, Math.max(20, Math.round((wordCount / 600) * 100))); // ~600 words = ideal
+  const bulletSignal = Math.min(100, bulletCount * 6);
+  const structureSignal = Math.min(100, sectionHits * 14 + 20);
+
+  // JS-side estimate now driven by THIS resume's signals (no fixed anchor dominating)
+  const jsOverallEst = Math.round(
+    jsOverallKw * 0.32 +
+    jsOverallAch * 0.22 +
+    bulletSignal * 0.10 +
+    lengthSignal * 0.10 +
+    structureSignal * 0.10 +
+    55 * 0.16  // small floor only
+  );
+
+  // Blend AI score with JS estimate so resume-level variation always shows through
+  let calibratedAtsScore = resultA.atsScore || jsOverallEst;
+  calibratedAtsScore = Math.round(calibratedAtsScore * 0.55 + jsOverallEst * 0.45);
+
+  // Hard caps based on actual role-keyword evidence
   if (jsOverallHits < 12) calibratedAtsScore = Math.min(calibratedAtsScore, 86);
   if (jsOverallHits < 7)  calibratedAtsScore = Math.min(calibratedAtsScore, 76);
   if (jsOverallHits < 4)  calibratedAtsScore = Math.min(calibratedAtsScore, 62);
-  let calibratedRecruiterScore = resultA.recruiterScore || 60;
+  calibratedAtsScore = Math.max(20, Math.min(100, calibratedAtsScore));
+
+  let calibratedRecruiterScore = resultA.recruiterScore || calibratedAtsScore;
   if (calibratedRecruiterScore > calibratedAtsScore + 15) {
     calibratedRecruiterScore = calibratedAtsScore + Math.round((calibratedRecruiterScore - calibratedAtsScore) * 0.5);
   }
