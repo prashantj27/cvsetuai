@@ -867,7 +867,17 @@ async function runAnalysis({ resumeText, jdText, industry, role, stream }) {
     if (!combined.map(k=>k.toLowerCase()).includes(t.toLowerCase())) combined.push(t);
   }
 
+  // Per-resume fingerprint — varies prompt by content so identical-looking
+  // requests for different resumes never collapse to a cached AI response.
+  let _fp = 0;
+  for (let i = 0; i < resumeText.length; i++) { _fp = ((_fp << 5) - _fp + resumeText.charCodeAt(i)) | 0; }
+  const resumeFingerprint = `RID-${Math.abs(_fp).toString(36)}-${resumeText.length}w`;
+
   const promptA = `You are an elite ATS scoring engine and senior recruiter. Analyse ONLY the resume below. Return ONLY valid JSON, no markdown.
+
+RESUME FINGERPRINT (internal id, do not echo): ${resumeFingerprint}
+SCORES MUST BE DERIVED FROM THIS SPECIFIC RESUME'S CONTENT. Do not reuse a default or template score — every score must reflect the actual bullets, keywords, and structure of THIS resume.
+
 
 CRITICAL CALIBRATION — READ BEFORE SCORING:
 An AVERAGE resume from a decent college/company should score 65–75 overall.
