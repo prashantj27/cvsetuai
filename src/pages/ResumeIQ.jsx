@@ -9233,6 +9233,20 @@ function ResumeBuilderWizard({ onBack }) {
   const exportRef  = useRef(null);
   const [previewContentH, setPreviewContentH] = useState(1123);
 
+  // ── Generation progress tracking ─────────────────────────────
+  const [genElapsed, setGenElapsed] = useState(0); // seconds
+  React.useEffect(() => {
+    if (!generating) { setGenElapsed(0); return; }
+    const start = Date.now();
+    const id = setInterval(() => setGenElapsed(Math.floor((Date.now() - start) / 1000)), 250);
+    return () => clearInterval(id);
+  }, [generating]);
+  // Expected total time (used to compute % progress). Asymptotically approaches 95%.
+  const EXPECTED_SEC = 32;
+  const genProgress = Math.min(95, Math.round((1 - Math.exp(-genElapsed / (EXPECTED_SEC / 2.3))) * 100));
+  // 4 stage indices; each stage occupies ~1/4 of expected time
+  const genStageIdx = Math.min(3, Math.floor(genElapsed / (EXPECTED_SEC / 4)));
+
   // Track resume content height for page break lines
   React.useEffect(() => {
     if (!exportRef.current) return;
