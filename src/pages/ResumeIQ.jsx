@@ -5923,7 +5923,9 @@ Return this EXACT JSON structure (empty string/array if info not available — n
 }`;
 
   const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
-  return await callClaude(fullPrompt, 32768);
+  // 8000 tokens is more than enough for a resume JSON (~4-6k typical).
+  // Using 32k previously caused the model to stream long outputs → 60s+ latency.
+  return await callClaude(fullPrompt, 8000);
 }
 
 /* ─────────────────────────────────────────────────────────────
