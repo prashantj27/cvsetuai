@@ -10188,20 +10188,50 @@ function ResumeBuilderWizard({ onBack }) {
               {(useCustom && refPDFImage
                 ? [{ icon: '🔍', label: 'Scanning visual layout' }, { icon: '🎨', label: 'Extracting colors & fonts' }, { icon: '⚙️', label: 'Building structure' }, { icon: '✍️', label: 'Filling your content' }]
                 : [{ icon: '📖', label: 'Parsing your information' }, { icon: '✍️', label: 'Writing STAR bullets' }, { icon: '📐', label: 'Structuring sections' }, { icon: '✨', label: 'Polishing & finalising' }]
-              ).map((s, i) => (
-                <div key={i} style={{
-                  display: 'flex', alignItems: 'center', gap: 8, padding: '10px 18px', borderRadius: 30,
-                  background: 'rgba(255,255,255,0.75)', backdropFilter: 'blur(10px)',
-                  border: `1px solid rgba(176,125,42,0.2)`, boxShadow: '0 2px 12px rgba(176,125,42,0.07)',
-                  animation: `blink 2s ${i * 0.5}s infinite`,
-                }}>
-                  <span style={{ fontSize: 16 }}>{s.icon}</span>
-                  <span style={{ fontSize: 12.5, fontWeight: 600, color: T.text }}>{s.label}</span>
-                </div>
-              ))}
+              ).map((s, i) => {
+                const isDone   = i < genStageIdx;
+                const isActive = i === genStageIdx;
+                return (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '10px 18px', borderRadius: 30,
+                    background: isActive ? 'rgba(176,125,42,0.14)' : 'rgba(255,255,255,0.75)',
+                    backdropFilter: 'blur(10px)',
+                    border: `1px solid ${isActive ? T.gold : 'rgba(176,125,42,0.2)'}`,
+                    boxShadow: isActive ? '0 4px 18px rgba(176,125,42,0.22)' : '0 2px 12px rgba(176,125,42,0.07)',
+                    opacity: isDone ? 0.55 : 1,
+                    transition: 'all 0.35s ease',
+                  }}>
+                    <span style={{ fontSize: 16 }}>{isDone ? '✅' : s.icon}</span>
+                    <span style={{ fontSize: 12.5, fontWeight: 600, color: T.text }}>{s.label}</span>
+                  </div>
+                );
+              })}
             </div>
 
-            <div style={{ display: 'flex', gap: 8, marginTop: 36 }}>
+            {/* Progress bar + elapsed / % */}
+            <div style={{ marginTop: 32, width: 'min(540px, 82vw)' }}>
+              <div style={{
+                height: 8, borderRadius: 999, overflow: 'hidden',
+                background: 'rgba(176,125,42,0.15)', border: '1px solid rgba(176,125,42,0.18)',
+              }}>
+                <div style={{
+                  height: '100%', width: `${genProgress}%`,
+                  background: `linear-gradient(90deg, ${T.gold}, ${T.sage})`,
+                  borderRadius: 999,
+                  boxShadow: `0 0 12px ${T.gold}55`,
+                  transition: 'width 0.35s ease',
+                }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 12, color: T.muted, fontVariantNumeric: 'tabular-nums' }}>
+                <span>{genProgress}%</span>
+                <span>
+                  {genElapsed}s elapsed
+                  {genElapsed > EXPECTED_SEC * 1.6 ? ' · finishing up, hang tight…' : ''}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
               {[0,1,2,3].map(i => (
                 <div key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: T.gold, opacity: 0.7, animation: `dotBounce 1.4s ${i*0.18}s ease-in-out infinite` }} />
               ))}
